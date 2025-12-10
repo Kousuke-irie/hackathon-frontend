@@ -8,7 +8,7 @@ const client = axios.create({
     baseURL: API_URL,
 });
 
-// --- 2. 共通インターフェース (APIレスポンス型) ---
+// --- 2. 共通インターフェース (APIレスポンス型) ---a
 
 // 商品の共通型
 export interface Item {
