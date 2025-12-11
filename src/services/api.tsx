@@ -111,13 +111,6 @@ export interface Transaction {
 
 // --- 3. API通信関数 ---
 
-//テスト用
-export const fetchTestConnection = async ()  => {
-    // clientはAPI_URLを参照しているため、そのまま使用
-    const response = await client.get('/');
-    return response.data;
-};
-
 // ------------------------------------
 // 認証・ユーザー
 // ------------------------------------

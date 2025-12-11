@@ -25,33 +25,6 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
     const keyword = searchParams.get('q') || ''; // qパラメータを取得
 
     const currentUserID = user ? user.id : 0;
-    
-
-    //テスト用
-    useEffect(() => {
-        (async () => {
-            try {
-                // ▼▼▼ 修正: テスト接続APIのみを叩く ▼▼▼
-                const testResult = await api.fetchTestConnection();
-                console.log("Test Connection Result:", testResult);
-
-                // 接続が成功したら、ここで成功メッセージをユーザーに伝える
-                alert("バックエンドとの接続テストに成功しました！");
-
-                // 成功したら、以下の行で元のメタデータ取得ロジックに戻す
-                // const [categories, conditions] = await Promise.all([
-                //     api.fetchCategories(),
-                //     api.fetchConditions(),
-                // ]);
-                // setCategoriesMeta(categories);
-                // setConditionsMeta(conditions);
-
-            } catch (error) {
-                console.error("Failed to fetch metadata (Test Failed):", error);
-                alert("接続テストに失敗しました。まだネットワーク設定に問題があります。");
-            }
-        })();
-    }, []);
 
     useEffect(() => {
         (async () => {
