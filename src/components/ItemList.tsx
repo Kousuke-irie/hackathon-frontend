@@ -37,6 +37,8 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                 setConditionsMeta(conditions);
             } catch (error) {
                 console.error("Failed to fetch metadata:", error);
+            } finally {
+                setLoading(false);
             }
         })();
     }, []);
