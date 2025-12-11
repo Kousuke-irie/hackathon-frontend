@@ -3,7 +3,7 @@ import type { User } from '../types/user';
 
 
 // --- 1. APIベース設定 ---
-const API_URL = import.meta.env.REACT_APP_API_URL || "http://localhost:8080";
+const API_URL = import.meta.env.VITE_APP_API_URL || "http://localhost:8080";
 const client = axios.create({
     baseURL: API_URL,
 });
