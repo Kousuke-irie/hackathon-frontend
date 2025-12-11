@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { User } from "../types/user";
+import * as api from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { Button, TextField, Box, Avatar, Typography, Paper, Divider } from '@mui/material';
 
@@ -30,22 +31,14 @@ export const UserProfile = ({ user, onUserUpdate, onLogout }: UserProfileProps) 
             // ▼ api.tsにupdateUserを定義していないため、一旦ここにロジックを記述します
             // 🚨 注意: api.tsに updateProfile(id: number, name: string, bio: string) を追加するのが理想です
 
-            const response = await fetch(`http://localhost:8081/users/me`, { // ルートは /users/me のPUTを想定
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: user.id,
-                    username: username,
-                    bio: bio,
-                    icon_url: iconUrl,
-                }),
+            const response = await api.client.put('/users/me', { // ルートは /users/me のPUTを想定
+                id: user.id,
+                username: username,
+                bio: bio,
+                icon_url: iconUrl,
             });
 
-            if (!response.ok) {
-                throw new Error("APIレスポンスエラー");
-            }
-
-            const data = await response.json();
+            const data = response.data; // 👈 axiosの応答には .data にJSONボディが含まれる
 
             onUserUpdate(data.user);
 
