@@ -207,7 +207,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
             // 1. 新しい画像ファイル(image)がある場合のみ、GCSにアップロード
             if (image) {
                 // 1-1. アップロードURLと最終的な画像URLを取得 (api.tsxに追加した関数)
-                const { uploadUrl, imageUrl } = await api.getGcsUploadUrl(image.name);
+                const { uploadUrl, imageUrl } = await api.getGcsUploadUrl(image.name,user.id);
 
                 // 1-2. GCSの署名付きURLにファイルをPUT送信 (axiosのclientを使用)
                 // Content-TypeはファイルのMIMEタイプを設定する必要がある

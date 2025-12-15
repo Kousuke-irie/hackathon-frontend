@@ -9,10 +9,11 @@ export const client = axios.create({
 });
 
 /** GCSアップロード用の署名付きURLと最終的な画像URLを取得 */
-export const getGcsUploadUrl = async (fileName: string): Promise<{ uploadUrl: string, imageUrl: string }> => {
+export const getGcsUploadUrl = async (fileName: string,userId:number): Promise<{ uploadUrl: string, imageUrl: string }> => {
     // バックエンドにファイル名やMIMEタイプなどを渡し、署名付きURLを要求する
-    const response = await client.post('/items/upload-url', { file_name: fileName });
-    // Go側は {"uploadUrl": "...", "imageUrl": "..."} を返す想定
+    const response = await client.post('/items/upload-url', { file_name: fileName }, {
+        headers: { 'X-User-ID': userId.toString() }, // 👈 401エラーを防ぐための必須ヘッダー
+    });
     return response.data;
 };
 
