@@ -211,7 +211,11 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
                 const { uploadUrl, imageUrl } = await api.getGcsUploadUrl(image.name,user.id,image.type);
 
                 await axios.put(uploadUrl, image, {
-                    headers: { 'Content-Type': image.type },
+                    headers: {
+                        'Content-Type': image.type,
+                        'Accept': undefined,
+                        'Content-Length': undefined,
+                    },
                 });
 
                 finalImageUrl = imageUrl; // GCSに保存された最終的なURLを更新
