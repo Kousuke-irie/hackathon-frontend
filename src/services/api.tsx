@@ -8,6 +8,14 @@ export const client = axios.create({
     baseURL: API_URL,
 });
 
+/** GCSアップロード用の署名付きURLと最終的な画像URLを取得 */
+export const getGcsUploadUrl = async (fileName: string): Promise<{ uploadUrl: string, imageUrl: string }> => {
+    // バックエンドにファイル名やMIMEタイプなどを渡し、署名付きURLを要求する
+    const response = await client.post('/items/upload-url', { file_name: fileName });
+    // Go側は {"uploadUrl": "...", "imageUrl": "..."} を返す想定
+    return response.data;
+};
+
 // --- 2. 共通インターフェース (APIレスポンス型) ---a
 
 // 商品の共通型
@@ -25,6 +33,20 @@ export interface Item {
     condition: string;
     shipping_payer: string;
     shipping_fee: number;
+}
+
+// 既存の Item インターフェースをベースに、出品に必要なメタデータ型を定義
+export interface ItemData {
+    title: string;
+    description: string;
+    price: string; // SellItem.tsx からは string で来るため
+    seller_id: string; // SellItem.tsx からは string で来るため
+    image_url: string; // ★ GCSにアップロードされたURLを追加
+    category_id: string; // SellItem.tsx からは string で来るため
+    condition: string;
+    shipping_payer: 'seller' | 'buyer';
+    shipping_fee: string; // SellItem.tsx からは string で来るため
+    status: 'ON_SALE' | 'SOLD' | 'DRAFT';
 }
 
 // コミュニティの共通型
@@ -179,10 +201,8 @@ export const fetchItemDetail = async (itemId: number): Promise<Item> => {
     return response.data.item;
 };
 
-export const updateItem = async (itemId: number, data: FormData): Promise<Item> => {
-    const response = await client.put(`/items/${itemId}`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    });
+export const updateItem = async (itemId: number, data: ItemData): Promise<Item> => {
+    const response = await client.put(`/items/${itemId}`, data);
     return response.data.item;
 };
 
@@ -230,10 +250,8 @@ export const analyzeItemImage = async (image: File): Promise<AIAnalysisResult> =
 };
 
 /** 商品を登録・出品 */
-export const createItem = async (formData: FormData): Promise<Item> => {
-    const response = await client.post('/items', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    });
+export const createItem = async (data: ItemData): Promise<Item> => {
+    const response = await client.post('/items', data);
     return response.data.item;
 };
 /** 取引ステータスを更新 */
