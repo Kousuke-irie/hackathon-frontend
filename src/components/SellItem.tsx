@@ -213,8 +213,6 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
                 await axios.put(uploadUrl, image, {
                     headers: {
                         'Content-Type': image.type,
-                        'Accept': undefined,
-                        'Content-Length': undefined,
                     },
                     transformRequest: [(data) => data],
                 });
