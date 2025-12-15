@@ -216,6 +216,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
                         'Accept': undefined,
                         'Content-Length': undefined,
                     },
+                    transformRequest: [(data) => data],
                 });
 
                 finalImageUrl = imageUrl; // GCSに保存された最終的なURLを更新
