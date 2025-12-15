@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import axios from "axios";
 import * as api from "../services/api";
 import type { User } from "../types/user";
 import { Box, TextField, Button, Select, MenuItem, InputLabel, FormControl, CircularProgress, Typography } from '@mui/material';
@@ -209,9 +210,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
                 // 1-1. アップロードURLと最終的な画像URLを取得 (api.tsxに追加した関数)
                 const { uploadUrl, imageUrl } = await api.getGcsUploadUrl(image.name,user.id,image.type);
 
-                // 1-2. GCSの署名付きURLにファイルをPUT送信 (axiosのclientを使用)
-                // Content-TypeはファイルのMIMEタイプを設定する必要がある
-                await api.client.put(uploadUrl, image, {
+                await axios.put(uploadUrl, image, {
                     headers: { 'Content-Type': image.type },
                 });
 
