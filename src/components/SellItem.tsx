@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import axios from "axios";
 import * as api from "../services/api";
 import type { User } from "../types/user";
 import { Box, TextField, Button, Select, MenuItem, InputLabel, FormControl, CircularProgress, Typography } from '@mui/material';
@@ -202,35 +203,50 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
 
         setIsSaving(true);
         try {
-            // 1. フォームデータの構築 (PUTとPOSTでほぼ共通)
-            const formData = new FormData();
+            let finalImageUrl = existingImageURL; // 既存画像URLを初期値とする
 
-            formData.append("title", title);
-            formData.append("description", description);
-            formData.append("price", price.toString());
-            formData.append("seller_id", user.id.toString());
-
-            // 💡 画像の処理: 新しい画像ファイルがあればそれを、なければ何もしない
+            // 1. 新しい画像ファイル(image)がある場合のみ、GCSにアップロード
             if (image) {
-                formData.append("image", image);
+                // 1-1. アップロードURLと最終的な画像URLを取得 (api.tsxに追加した関数)
+                const { uploadUrl, imageUrl } = await api.getGcsUploadUrl(image.name,user.id,image.type);
+
+                await axios.put(uploadUrl, image, {
+                    headers: {
+                        'Content-Type': image.type,
+                    },
+                    transformRequest: [(data) => data],
+                });
+
+                finalImageUrl = imageUrl; // GCSに保存された最終的なURLを更新
             }
 
-            // テキストメタデータ
-            formData.append("category_id", categoryId.toString());
-            formData.append("condition", condition);
-            formData.append("shipping_payer", shippingPayer);
-            formData.append("shipping_fee", shippingFee.toString());
-            formData.append("status", isDraft ? "DRAFT" : "ON_SALE");
+            // 画像が未選択なのにexistingImageURLもない場合はエラー (上のチェックで弾かれるはずだが念のため)
+            if (!finalImageUrl) {
+                throw new Error("画像URLが確定できませんでした。");
+            }
+
+            // 2. 商品データJSONの構築 (FormDataの代わり)
+            const itemData: api.ItemData = {
+                title: title,
+                description: description,
+                price: price.toString(),
+                seller_id: user.id.toString(),
+                image_url: finalImageUrl, // 👈 GCSのURLを渡す
+                category_id: categoryId.toString(),
+                condition: condition,
+                shipping_payer: shippingPayer,
+                shipping_fee: shippingFee.toString(),
+                status: isDraft ? "DRAFT" : "ON_SALE",
+            };
 
 
-            // 2. APIの呼び出し（PUT または POST）
+            // 3. APIの呼び出し（PUT または POST）
             if (isEditMode && editingItemId) {
-                // 編集モード: PUT を使用
-                // PUTでは application/jsonで送るのがREST fullですが、画像を含むためmultipart/form-dataで送ります。
-                await api.updateItem(editingItemId, formData); // 💡 PUT APIを使用
+                // 編集モード: PUT を使用 (JSONを受け付けるように修正したapi.updateItemを使用)
+                await api.updateItem(editingItemId, itemData);
             } else {
-                // 新規作成または新規下書き: POST を使用
-                await api.createItem(formData);
+                // 新規作成または新規下書き: POST を使用 (JSONを受け付けるように修正したapi.createItemを使用)
+                await api.createItem(itemData);
             }
 
             alert(isDraft ? "下書きを保存しました！" : "出品を完了しました！");
@@ -257,7 +273,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
         } finally {
             setIsSaving(false);
         }
-    }, [title, description, price, image, categoryId, condition, shippingPayer, shippingFee, user, isEditMode, editingItemId]);
+    }, [title, description, price, image,existingImageURL, categoryId, condition, shippingPayer, shippingFee, user, isEditMode, editingItemId]);
     // 出品機能 (handleSubmit)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
