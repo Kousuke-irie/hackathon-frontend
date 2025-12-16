@@ -1,4 +1,4 @@
-import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
+import { Link as RouterLink, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import {
     AppBar, Toolbar, Button, Box, Typography,
@@ -11,6 +11,8 @@ import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import type { User } from "../types/user";
+import logoImg from "../assets/logo.png";
+import {useNotifications} from "../hooks/useNotifications.tsx";
 
 interface NavbarProps {
     currentUser: User | null;
@@ -31,46 +33,59 @@ const CATEGORY_LINKS = [
 export const Navbar = ({ currentUser, onLogin, onLogout }: NavbarProps) => {
     const [searchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
-    const navigate = useNavigate();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-    // --- ドロップダウンメニュー制御用の状態 ---
+    // WebSocket通知Hook
+    const { unreadCount } = useNotifications(currentUser?.id);
+
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 
-    const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-    };
+    const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
+    const handleMenuClose = () => setAnchorEl(null);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        navigate(`/?q=${encodeURIComponent(searchTerm)}`);
+        window.location.href = `/?q=${encodeURIComponent(searchTerm)}`;
     };
-
     return (
         <AppBar position="fixed" color="inherit" elevation={0} sx={{ borderBottom: '1px solid #eee', bgcolor: '#fff' }}>
             <Container maxWidth="lg">
                 <Toolbar disableGutters sx={{ justifyContent: 'space-between', minHeight: 64, gap: 2 }}>
 
-                    <Typography
-                        variant="h5"
+                    {/* ロゴエリア：画像とテキストを横並びに */}
+                    <Box
                         component={RouterLink}
                         to="/"
                         sx={{
+                            display: 'flex',
+                            alignItems: 'center',
                             textDecoration: 'none',
-                            color: '#e91e63',
-                            fontWeight: 800,
-                            letterSpacing: '-0.5px',
-                            minWidth: 'fit-content',
-                            fontSize: isMobile ? '1.2rem' : '1.5rem'
+                            gap: 1 // 画像と文字の間隔
                         }}
                     >
-                        Wish
-                    </Typography>
+                        <img
+                            src={logoImg}
+                            alt="Wish Logo"
+                            style={{
+                                height: isMobile ? '32px' : '40px', // サイズ調整
+                                width: 'auto'
+                            }}
+                        />
+                        <Typography
+                            variant="h5"
+                            sx={{
+                                color: '#e91e63',
+                                fontWeight: 800,
+                                letterSpacing: '-0.5px',
+                                fontSize: isMobile ? '1.2rem' : '1.5rem',
+                                display: { xs: 'none', sm: 'block' } // スマホでは文字を隠してロゴのみにする場合
+                            }}
+                        >
+                            Wish
+                        </Typography>
+                    </Box>
 
                     <Box
                         component="form"
@@ -101,8 +116,13 @@ export const Navbar = ({ currentUser, onLogin, onLogout }: NavbarProps) => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1 }}>
                         {currentUser ? (
                             <>
-                                <IconButton color="inherit" sx={{ display: { xs: 'none', md: 'inline-flex' }, flexDirection: 'column' }}>
-                                    <Badge badgeContent={4} color="error">
+                                {/* お知らせ：クリックでページ遷移 */}
+                                <IconButton
+                                    color="inherit"
+                                    onClick={() => window.location.href = '/notifications'}
+                                    sx={{ flexDirection: 'column' }}
+                                >
+                                    <Badge badgeContent={unreadCount} color="error">
                                         <NotificationsNoneIcon />
                                     </Badge>
                                     <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>お知らせ</Typography>

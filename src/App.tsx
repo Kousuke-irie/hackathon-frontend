@@ -23,6 +23,7 @@ import { PurchaseHistory} from "./components/PurchaseHistory";
 import { InProgressPurchases} from "./components/InProgressPurchases";
 import { NotFound} from "./components/NotFound";
 import {MyPageLayout} from "./components/MyPageLayout.tsx";
+import {NotificationsPage} from "./components/NotificationsPage.tsx";
 
 import type { User } from './types/user';
 
@@ -229,6 +230,7 @@ function App() {
                                 <Route path="/swipe" element={<SwipeDeck user={user!} />}/>
                                 <Route path="/communities" element={<CommunityList onSelectCommunity={(id) => window.location.href = `/communities/${id}`} />}/>
                                 <Route path="/communities/:id" element={<CommunityWrapper user={user}/>}/>
+                                <Route path="/notifications" element={user ? <NotificationsPage user={user} /> : <Navigate to="/" />} />
                             </>
                         ) : (
                             <Route path="*" element={<Navigate to="/" replace />} />
