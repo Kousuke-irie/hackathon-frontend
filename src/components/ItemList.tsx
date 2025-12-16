@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import {Box, FormControl, InputLabel, Select, MenuItem, Card} from "@mui/material";
+import {Box, FormControl, Select, MenuItem, Typography, CircularProgress} from "@mui/material";
 import { useSearchParams} from "react-router-dom";
-import { RecentItemsDisplay} from "./RecentItemsDisplay.tsx";
+import { RecentItemsDisplay} from "./RecentItemsDisplay";
 
 type Item = api.Item;
 
@@ -17,12 +17,12 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
     const [selectedCondition, setSelectedCondition] = useState<string>('');
-    const [categoriesMeta, setCategoriesMeta] = useState<api.Category[]>([]); // フラットリスト
+    const [categoriesMeta, setCategoriesMeta] = useState<api.Category[]>([]);
     const [conditionsMeta, setConditionsMeta] = useState<api.ProductCondition[]>([]);
     const [sortBy, setSortBy] = useState<'created_at' | 'price'>('created_at');
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
-    const [searchParams] = useSearchParams(); // URLのクエリを取得
-    const keyword = searchParams.get('q') || ''; // qパラメータを取得
+    const [searchParams] = useSearchParams();
+    const keyword = searchParams.get('q') || '';
 
     const currentUserID = user ? user.id : 0;
 
@@ -30,29 +30,21 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
         (async () => {
             try {
                 const [categories, conditions] = await Promise.all([
-                    api.fetchCategories(), // フラットリストを取得
+                    api.fetchCategories(),
                     api.fetchConditions(),
                 ]);
                 setCategoriesMeta(categories);
                 setConditionsMeta(conditions);
             } catch (error) {
                 console.error("Failed to fetch metadata:", error);
-            } finally {
-                setLoading(false);
             }
         })();
     }, []);
 
     useEffect(() => {
         (async () => {
-            // 未ログイン時、ItemDetailWrapperがユーザー情報を必要とするため、ここではnullチェックはしないか、
-            // ItemDetailWrapper側でUser.idの有無を判定すべきですが、API側で0を許容している前提で進めます。
-            const currentUserID = user ? user.id : 0;
-            if (currentUserID === 0 && !user) return; // 未ログインでIDが0の場合、APIを叩かない
-
             setLoading(true);
             try {
-                // 💡 API呼び出しロジックの実装: フィルタリングパラメータを渡す
                 const params = {
                     user_id: currentUserID,
                     category_id: selectedCategory || undefined,
@@ -61,7 +53,6 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                     sort_order: sortOrder,
                     q: keyword || undefined,
                 };
-
                 const fetchedItems = await api.fetchItemList(params);
                 setItems(fetchedItems);
             } catch (error) {
@@ -70,56 +61,46 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                 setLoading(false);
             }
         })();
-    }, [user,currentUserID, selectedCategory, selectedCondition, sortBy, sortOrder,keyword]);
+    }, [user, currentUserID, selectedCategory, selectedCondition, sortBy, sortOrder, keyword]);
 
-    if (loading) {
-        return <div style={{ textAlign: "center", marginTop: "50px" }}>Loading...</div>;
-    }
-
-    if (items.length === 0) {
-        return <div style={{ textAlign: "center", marginTop: "50px" }}>表示できる商品がありません。</div>;
-    }
+    if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress color="inherit" /></Box>;
 
     return (
-        <Box sx={{ mt: 3, p: 1 }}>
-            {/* ▼▼▼ 組み込み: トップページ上部 ▼▼▼ */}
+        <Box>
             <RecentItemsDisplay onItemClick={onItemClick} />
-            {/* ▼▼▼ 追加: フィルタリング UI ▼▼▼ */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                <FormControl size="small" sx={{ minWidth: 150 }}>
-                    <InputLabel>カテゴリ</InputLabel>
+
+            {/* フィルタリングエリア: シンプルに */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 4, overflowX: 'auto', pb: 1 }}>
+                <FormControl size="small" variant="standard" sx={{ minWidth: 100 }}>
                     <Select
-                        label="カテゴリ"
                         value={selectedCategory || ''}
                         onChange={(e) => setSelectedCategory(Number(e.target.value))}
+                        displayEmpty
+                        renderValue={selectedCategory ? undefined : () => "カテゴリ"}
                     >
                         <MenuItem value="">すべて</MenuItem>
-                        {/* メタデータで取得したカテゴリを表示 (api.fetchCategoriesを使用) */}
                         {categoriesMeta.map((cat) => (
                             <MenuItem key={cat.id} value={cat.id}>{cat.name}</MenuItem>
                         ))}
                     </Select>
                 </FormControl>
 
-                <FormControl size="small" sx={{ minWidth: 150 }}>
-                    <InputLabel>状態</InputLabel>
+                <FormControl size="small" variant="standard" sx={{ minWidth: 100 }}>
                     <Select
-                        label="状態"
                         value={selectedCondition}
                         onChange={(e) => setSelectedCondition(e.target.value as string)}
+                        displayEmpty
+                        renderValue={selectedCondition ? undefined : () => "状態"}
                     >
                         <MenuItem value="">すべて</MenuItem>
-                        {/* メタデータで取得した状態を表示 (api.fetchConditionsを使用) */}
                         {conditionsMeta.map((cond) => (
                             <MenuItem key={cond.id} value={cond.name}>{cond.name}</MenuItem>
                         ))}
                     </Select>
                 </FormControl>
-                <FormControl size="small" sx={{ minWidth: 150 }}>
-                    <InputLabel>並び替え</InputLabel>
+
+                <FormControl size="small" variant="standard" sx={{ minWidth: 120 }}>
                     <Select
-                        label="並び替え"
-                        // sortByとsortOrderを組み合わせた値を管理
                         value={`${sortBy}_${sortOrder}`}
                         onChange={(e) => {
                             const [by, order] = (e.target.value as string).split('_');
@@ -134,53 +115,78 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                 </FormControl>
             </Box>
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 2, // アイテム間の間隔
-                    // レスポンシブな2〜4列レイアウトをCSS Gridで定義
-                    gridTemplateColumns: {
-                        xs: '1fr 1fr',          // 画面が小さいときは2列 (xs=6 に相当)
-                        sm: '1fr 1fr 1fr',      // 中程度のときは3列 (sm=4 に相当)
-                        md: '1fr 1fr 1fr 1fr',  // 大きいときは4列 (md=3 に相当)
-                    },
-                    mt: 2
-                }}
-            >
-                {items.map((item) => (
-                    // ▼ Grid item を Box に置き換え、onClickを適用
-                    <Box
-                        key={item.id}
-                        onClick={() => onItemClick(item.id)}
-                        sx={{
-                            cursor: 'pointer',
-                            height: '100%',
-                            border: "1px solid #eee",
-                            borderRadius: "8px",
-                            overflow: "hidden",
-                            boxShadow: "0 2px 5px rgba(0,0,0,0.05)"
-                        }}
-                    >
-                        {/* Cardコンポーネントはそのまま内部に残します */}
-                        <Card sx={{ height: '100%', boxShadow: 'none' }}>
-                            <img
-                                src={item.image_url}
-                                alt={item.title}
-                                style={{ width: "100%", height: "150px", objectFit: "cover" }}
-                            />
-                            <Box sx={{ padding: "8px" }}>
-                                {/* ... タイトルと価格 ... */}
-                                <h4 style={{ margin: "0 0 5px 0", fontSize: "14px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
-                                    {item.title}
-                                </h4>
-                                <p style={{ margin: 0, fontWeight: "bold", color: "#e91e63" }}>
-                                    ¥{item.price.toLocaleString()}
-                                </p>
+            {items.length === 0 ? (
+                <Typography align="center" color="text.secondary" sx={{ mt: 5 }}>該当する商品が見つかりませんでした。</Typography>
+            ) : (
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gap: '24px 16px', // 縦横の隙間
+                        gridTemplateColumns: {
+                            xs: '1fr 1fr',          // スマホ: 2列
+                            sm: '1fr 1fr 1fr',      // タブレット: 3列
+                            md: '1fr 1fr 1fr 1fr',  // PC: 4列
+                        },
+                    }}
+                >
+                    {items.map((item) => (
+                        <Box
+                            key={item.id}
+                            onClick={() => onItemClick(item.id)}
+                            sx={{
+                                cursor: 'pointer',
+                                transition: 'opacity 0.2s',
+                                '&:hover': { opacity: 0.8 }
+                            }}
+                        >
+                            {/* 画像コンテナ: アスペクト比を固定（例: 1:1） */}
+                            <Box sx={{
+                                position: 'relative',
+                                width: '100%',
+                                paddingTop: '100%', // 1:1 Aspect Ratio
+                                backgroundColor: '#f0f0f0',
+                                borderRadius: '4px', // ほんの少しだけ角を丸める
+                                overflow: 'hidden',
+                                mb: 1
+                            }}>
+                                <img
+                                    src={item.image_url}
+                                    alt={item.title}
+                                    style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: "100%",
+                                        height: "100%",
+                                        objectFit: "cover"
+                                    }}
+                                />
+                                {item.status === 'SOLD' && (
+                                    <Box sx={{
+                                        position: 'absolute',
+                                        top: 0, left: 0, width: '100%', height: '100%',
+                                        bgcolor: 'rgba(0,0,0,0.5)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        color: 'white', fontWeight: 'bold', letterSpacing: 2
+                                    }}>
+                                        SOLD
+                                    </Box>
+                                )}
                             </Box>
-                        </Card>
-                    </Box>
-                ))}
-            </Box>
+
+                            {/* 商品情報: 最小限に */}
+                            <Box>
+                                <Typography variant="subtitle2" component="h3" noWrap sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                                    {item.title}
+                                </Typography>
+                                <Typography variant="body2" component="p" sx={{ fontWeight: 'bold', mt: 0.5 }}>
+                                    ¥{item.price.toLocaleString()}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    ))}
+                </Box>
+            )}
         </Box>
     );
 };

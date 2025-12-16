@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
+import {Box, Typography, Button, Avatar, InputBase} from "@mui/material";
 
 interface Comment {
     id: number;
@@ -54,46 +55,57 @@ export const CommentSection = ({ itemId, currentUser }: CommentSectionProps) => 
     };
 
     return (
-        <div style={{ marginTop: "30px", borderTop: "1px solid #eee", paddingTop: "20px" }}>
-            <h3>コメント ({comments.length})</h3>
+        <Box sx={{ mt: 5, pt: 4, borderTop: '1px solid #eee' }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+                コメント ({comments.length})
+            </Typography>
 
-            {/* コメントリスト */}
-            <div style={{ marginBottom: "20px" }}>
+            <Box sx={{ mb: 4 }}>
                 {comments.map((comment) => (
-                    <div key={comment.id} style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
-                        <img
-                            src={comment.user.icon_url}
-                            alt={comment.user.username}
-                            style={{ width: "35px", height: "35px", borderRadius: "50%" }}
-                        />
-                        <div style={{ backgroundColor: "#f5f5f5", padding: "10px", borderRadius: "10px", flex: 1 }}>
-                            <div style={{ fontSize: "0.8rem", color: "#666", marginBottom: "4px" }}>
-                                {comment.user.username} • {new Date(comment.created_at).toLocaleDateString()}
-                            </div>
-                            <div style={{ whiteSpace: "pre-wrap" }}>{comment.content}</div>
-                        </div>
-                    </div>
+                    <Box key={comment.id} sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                        <Avatar src={comment.user.icon_url} sx={{ width: 32, height: 32 }} />
+                        <Box sx={{ flex: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                    {comment.user.username}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    {new Date(comment.created_at).toLocaleDateString()}
+                                </Typography>
+                            </Box>
+                            <Typography variant="body2" sx={{ color: '#333', lineHeight: 1.6 }}>
+                                {comment.content}
+                            </Typography>
+                        </Box>
+                    </Box>
                 ))}
-                {comments.length === 0 && <p style={{ color: "#999" }}>まだコメントはありません。</p>}
-            </div>
+            </Box>
 
-            {/* コメント入力フォーム */}
-            <form onSubmit={handlePostComment} style={{ display: "flex", gap: "10px" }}>
-                <input
-                    type="text"
-                    placeholder="商品への質問やコメント..."
+            {/* 入力フォームをメルカリのようにシンプルに */}
+            <Box component="form" onSubmit={handlePostComment} sx={{ display: 'flex', gap: 1 }}>
+                <InputBase
+                    placeholder="質問する"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    style={{ flex: 1, padding: "10px", borderRadius: "20px", border: "1px solid #ccc" }}
-                    required
+                    sx={{
+                        flex: 1,
+                        bgcolor: '#f5f5f5',
+                        borderRadius: '4px',
+                        px: 2,
+                        py: 1,
+                        fontSize: '0.9rem'
+                    }}
                 />
-                <button
+                <Button
                     type="submit"
-                    style={{ padding: "10px 20px", backgroundColor: "#00bcd4", color: "white", border: "none", borderRadius: "20px", cursor: "pointer" }}
+                    variant="contained"
+                    color="primary"
+                    disabled={!newComment.trim()}
+                    sx={{ borderRadius: '4px', px: 3 }}
                 >
                     送信
-                </button>
-            </form>
-        </div>
+                </Button>
+            </Box>
+        </Box>
     );
 };

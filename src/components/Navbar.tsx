@@ -1,182 +1,200 @@
-import { Link as RouterLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useState} from "react";
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import Button from '@mui/material/Button';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import AccountCircle from '@mui/icons-material/AccountCircle'; // アイコン
-import IconButton from '@mui/material/IconButton';
-import type { User } from "../types/user";
-import InputBase from '@mui/material/InputBase';
+import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import {
+    AppBar, Toolbar, Button, Box, Typography,
+    InputBase, IconButton, Badge, Container, useTheme, useMediaQuery // ★ useMediaQuery を復元
+} from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import type { User } from "../types/user";
 
 interface NavbarProps {
     currentUser: User | null;
     onLogin: () => void;
 }
 
-interface NavItem { // ★ 新しい型を定義
-    name: string;
-    path?: string;
-    private?: boolean;
-    subItems?: NavItem[];
-}
+const CATEGORY_LINKS = [
+    { name: 'おすすめ', path: '/' },
+    { name: 'マイリスト', path: '/mylikes' },
+    { name: 'レディース', path: '/?cat=1' },
+    { name: 'メンズ', path: '/?cat=2' },
+    { name: 'インテリア', path: '/?cat=3' },
+    { name: '本・音楽・ゲーム', path: '/?cat=4' },
+    { name: 'おもちゃ・ホビー', path: '/?cat=5' },
+];
 
 export const Navbar = ({ currentUser, onLogin }: NavbarProps) => {
-    const location = useLocation();
-    const isActive = (path: string) => location.pathname === path;
     const [searchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
     const navigate = useNavigate();
+    const theme = useTheme();
 
-    // ★ ドロップダウンメニューの状態管理を追加
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const [openMenu, setOpenMenu] = useState<string | null>(null);
+    // ★ isMobile を定義 (画面幅が sm: 600px 未満の場合に true)
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // キーワードをURLにセットし、トップページに遷移（トップページで検索結果が表示される）
         navigate(`/?q=${encodeURIComponent(searchTerm)}`);
     };
 
-    const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, menuName: string) => {
-        setAnchorEl(event.currentTarget);
-        setOpenMenu(menuName);
-    };
-
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-        setOpenMenu(null);
-    };
-
-    const navItems: NavItem[] = [
-        { name: '商品一覧', path: '/' },
-        { name: 'Swipe', path: '/swipe', private: true },
-        { name: '界隈', path: '/communities', private: true },
-        {
-            name: '出品',
-            subItems: [
-                { name: '出品', path: '/sell', private: true },
-                { name: 'マイ出品', path: '/myitems', private: true }, // 仮のルート
-                { name: '下書き', path: '/drafts', private: true },
-            ]
-        },
-        {
-            name: '購入履歴',
-            subItems: [
-                { name: '取引中', path: '/purchase-in-progress', private: true }, // ★ 新しいルート
-                { name: '購入履歴', path: '/purchases', private: true },
-                { name: 'いいね', path: '/mylikes', private: true }, // 仮のルート
-            ]
-        },
-    ];
-
     return (
-        // position="fixed" で上部に固定
-        <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-            <Toolbar sx={{ justifyContent: 'space-between' }}>
-                <Typography variant="h6" component="div">
-                    フリマアプリ Wish
-                </Typography>
+        <AppBar position="fixed" color="inherit" elevation={0} sx={{ borderBottom: '1px solid #eee', bgcolor: '#fff' }}>
+            <Container maxWidth="lg">
+                <Toolbar disableGutters sx={{ justifyContent: 'space-between', minHeight: 64, gap: 2 }}>
 
-                <Box component="form" onSubmit={handleSearchSubmit} sx={{ display: 'flex', alignItems: 'center', mx: 2, flexGrow: 1, maxWidth: 400 }}>
-                    <InputBase
-                        placeholder="商品名、カテゴリ、タグで検索..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        sx={{ ml: 1, flex: 1, color: 'inherit', borderBottom: '1px solid white' }}
-                    />
-                    <IconButton type="submit" color="inherit">
-                        <SearchIcon />
-                    </IconButton>
-                </Box>
+                    <Typography
+                        variant="h5"
+                        component={RouterLink}
+                        to="/"
+                        sx={{
+                            textDecoration: 'none',
+                            color: '#e91e63',
+                            fontWeight: 800,
+                            letterSpacing: '-0.5px',
+                            minWidth: 'fit-content',
+                            // ★ isMobile を使用してロゴサイズを調整する例
+                            fontSize: isMobile ? '1.2rem' : '1.5rem'
+                        }}
+                    >
+                        Wish
+                    </Typography>
 
-                {/* 中央のナビゲーションボタン群のレンダリングロジックを更新 */}
-                <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
-                    {navItems.map((item) => {
-                        const showItem = !item.private || currentUser; // ログインチェック
+                    <Box
+                        component="form"
+                        onSubmit={handleSearchSubmit}
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            flexGrow: 1,
+                            maxWidth: 600,
+                            bgcolor: '#f5f5f5',
+                            borderRadius: '4px',
+                            px: isMobile ? 1 : 2, // ★ モバイル時はパディングを狭くする
+                            py: 0.5,
+                            mx: isMobile ? 1 : 2
+                        }}
+                    >
+                        <InputBase
+                            placeholder={isMobile ? "検索" : "キーワードから探す"} // ★ モバイル時はプレースホルダを短くする
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            sx={{ ml: 1, flex: 1, fontSize: '0.95rem' }}
+                        />
+                        <IconButton type="submit" size="small">
+                            <SearchIcon />
+                        </IconButton>
+                    </Box>
 
-                        if (!showItem) return null;
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1 }}>
+                        {currentUser ? (
+                            <>
+                                <IconButton color="inherit" sx={{ display: { xs: 'none', md: 'inline-flex' }, flexDirection: 'column' }}>
+                                    <Badge badgeContent={4} color="error">
+                                        <NotificationsNoneIcon />
+                                    </Badge>
+                                    <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>お知らせ</Typography>
+                                </IconButton>
 
-                        if (item.subItems) {
-                            // ドロップダウンメニューを持つアイテムのレンダリング
-                            return (
-                                <div key={item.name}>
+                                <IconButton
+                                    color="inherit"
+                                    component={RouterLink}
+                                    to="/mylikes"
+                                    sx={{ display: { xs: 'none', md: 'inline-flex' }, flexDirection: 'column' }}
+                                >
+                                    <FavoriteBorderIcon />
+                                    <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>いいね</Typography>
+                                </IconButton>
+
+                                <IconButton
+                                    color="inherit"
+                                    component={RouterLink}
+                                    to="/profile"
+                                    sx={{ display: 'inline-flex', flexDirection: 'column' }}
+                                >
+                                    {currentUser.icon_url ? (
+                                        <img src={currentUser.icon_url} alt="" style={{width: 24, height: 24, borderRadius: '50%'}} />
+                                    ) : (
+                                        <AccountCircleIcon />
+                                    )}
+                                    <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>マイページ</Typography>
+                                </IconButton>
+
+                                <Button
+                                    variant="contained"
+                                    color="secondary"
+                                    startIcon={<CameraAltIcon />}
+                                    component={RouterLink}
+                                    to="/sell"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        borderRadius: '4px',
+                                        px: 3,
+                                        display: { xs: 'none', md: 'flex' }
+                                    }}
+                                >
+                                    出品
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <Button
+                                    onClick={onLogin}
+                                    variant="contained"
+                                    color="secondary"
+                                    size={isMobile ? "small" : "medium"} // ★ モバイル時はボタンを小さくする
+                                    sx={{ fontWeight: 'bold', borderRadius: '4px', whiteSpace: 'nowrap' }}
+                                >
+                                    会員登録
+                                </Button>
+                                {!isMobile && ( // ★ モバイル時は「ログイン」を隠して「会員登録」のみにする例
                                     <Button
-                                        aria-controls={openMenu === item.name ? 'simple-menu' : undefined}
-                                        aria-haspopup="true"
-                                        onClick={(e) => handleMenuOpen(e, item.name)}
-                                        sx={{ color: 'white' }}
+                                        onClick={onLogin}
+                                        variant="outlined"
+                                        color="inherit"
+                                        sx={{ fontWeight: 'bold', borderRadius: '4px', borderColor: '#ccc', ml: 1 }}
                                     >
-                                        {item.name}
+                                        ログイン
                                     </Button>
-                                    <Menu
-                                        anchorEl={anchorEl}
-                                        keepMounted
-                                        open={openMenu === item.name}
-                                        onClose={handleMenuClose}
-                                        onClick={handleMenuClose} // メニュー内でクリックした際も閉じる
-                                    >
-                                        {item.subItems.map((subItem) => {
-                                            const showSubItem = !subItem.private || currentUser;
-                                            if (!showSubItem) return null;
+                                )}
+                            </>
+                        )}
+                    </Box>
+                </Toolbar>
+            </Container>
 
-                                            return (
-                                                <MenuItem
-                                                    key={subItem.name}
-                                                    component={RouterLink}
-                                                    to={subItem.path!}
-                                                    // メニューアイテムがアクティブな場合は色を変える
-                                                    selected={isActive(subItem.path || '')}
-                                                >
-                                                    {subItem.name}
-                                                </MenuItem>
-                                            );
-                                        })}
-                                    </Menu>
-                                </div>
-                            );
-                        }
-
-                        // パスを持つ通常のアイテムのレンダリング
-                        return (
-                            <Button
-                                key={item.name}
+            <Box sx={{ borderTop: '1px solid #eee' }}>
+                <Container maxWidth="lg">
+                    <Box sx={{
+                        display: 'flex',
+                        gap: isMobile ? 2 : 3, // ★ 間隔を調整
+                        overflowX: 'auto',
+                        py: 1.5,
+                        '&::-webkit-scrollbar': { display: 'none' } // スクロールバー非表示
+                    }}>
+                        {CATEGORY_LINKS.map((cat) => (
+                            <Typography
+                                key={cat.name}
                                 component={RouterLink}
-                                to={item.path!}
-                                sx={{ color: isActive(item.path || '') ? 'yellow' : 'white' }}
+                                to={cat.path}
+                                variant="body2"
+                                sx={{
+                                    textDecoration: 'none',
+                                    color: '#333',
+                                    fontWeight: 'bold',
+                                    whiteSpace: 'nowrap',
+                                    fontSize: isMobile ? '0.8rem' : '0.9rem', // ★ 文字サイズを微調整
+                                    '&:hover': { color: '#e91e63' }
+                                }}
                             >
-                                {item.name}
-                            </Button>
-                        );
-                    })}
-                </Box>
-
-                {/* 右上のユーザー情報 / ログインボタン */}
-                <Box>
-                    {currentUser ? (
-                        <>
-                            <IconButton
-                                color="inherit"
-                                component={RouterLink}
-                                to="/profile" // マイページへのリンク (フェーズ2で実装)
-                            >
-                                <AccountCircle />
-                            </IconButton>
-                            <Typography variant="body2" sx={{display: 'inline-block', mr: 1}}>
-                                {currentUser.username}
+                                {cat.name}
                             </Typography>
-                        </>
-                    ) : (
-                        <Button color="inherit" onClick={onLogin} variant="outlined">
-                            ログイン
-                        </Button>
-                    )}
-                </Box>
-            </Toolbar>
+                        ))}
+                    </Box>
+                </Container>
+            </Box>
         </AppBar>
     );
 };

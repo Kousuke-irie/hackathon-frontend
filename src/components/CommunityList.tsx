@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import * as api from "../services/api";
+import {Box, Typography, Button, Avatar, Paper, InputBase} from "@mui/material";
 
 interface Community {
     id: number;
@@ -28,8 +29,10 @@ export const CommunityList = ({ onSelectCommunity }: CommunityListProps) => {
     const [communities, setCommunities] = useState<Community[]>([]);
     const [newCommName, setNewCommName] = useState("");
 
-    useEffect(() => {
-        fetchCommunitiesData(setCommunities);
+    useEffect( () => {
+        (async () => {
+            await fetchCommunitiesData(setCommunities);
+        })();
     }, []);
 
     const handleCreate = async () => {
@@ -39,7 +42,7 @@ export const CommunityList = ({ onSelectCommunity }: CommunityListProps) => {
         try {
             await api.createCommunity({ name: newCommName , description, image_url})
             setNewCommName("");
-            fetchCommunitiesData(setCommunities);
+            await fetchCommunitiesData(setCommunities);
         } catch (error) {
             alert("作成失敗");
             console.log(error);
@@ -47,32 +50,80 @@ export const CommunityList = ({ onSelectCommunity }: CommunityListProps) => {
     };
 
     return (
-        <div style={{ padding: "10px" }}>
-            {/* 作成フォーム */}
-            <div style={{ marginBottom: "20px", display: "flex", gap: "10px" }}>
-                <input
-                    value={newCommName}
-                    onChange={(e) => setNewCommName(e.target.value)}
-                    placeholder="新しい界隈を作る"
-                    style={{ padding: "8px", flex: 1 }}
-                />
-                <button onClick={handleCreate} style={{ padding: "8px 16px" }}>作成</button>
-            </div>
+        <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>
+            <Typography variant="h5" sx={{ fontWeight: 800, mb: 4 }}>コミュニティ</Typography>
 
-            {/* 一覧 */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+            {/* 作成フォームセクション */}
+            <Paper elevation={0} sx={{ p: 3, mb: 5, bgcolor: '#f9f9f9', borderRadius: '12px' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>新しい界隈を作る</Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    <InputBase
+                        value={newCommName}
+                        onChange={(e) => setNewCommName(e.target.value)}
+                        placeholder="コミュニティ名を入力..."
+                        sx={{
+                            flex: 1,
+                            bgcolor: '#fff',
+                            borderRadius: '8px',
+                            px: 2,
+                            py: 1,
+                            border: '1px solid #eee'
+                        }}
+                    />
+                    <Button
+                        onClick={handleCreate}
+                        variant="contained"
+                        disabled={!newCommName}
+                        sx={{ borderRadius: '8px', px: 3, fontWeight: 'bold' }}
+                    >
+                        作成
+                    </Button>
+                </Box>
+            </Paper>
+
+            {/* 一覧セクション */}
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>参加可能なコミュニティ</Typography>
+            <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
                 {communities.map((c) => (
-                    <div
+                    <Box
                         key={c.id}
                         onClick={() => onSelectCommunity(c.id)}
-                        style={{ border: "1px solid #ccc", borderRadius: "8px", padding: "10px", cursor: "pointer", textAlign: "center" }}
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            p: 2,
+                            border: '1px solid #eee',
+                            borderRadius: '12px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                                borderColor: '#1a1a1a',
+                                transform: 'translateY(-2px)'
+                            }
+                        }}
                     >
-                        <img src={c.image_url} alt="" style={{ width: "50px", height: "50px", borderRadius: "50%", marginBottom: "5px" }} />
-                        <div style={{ fontWeight: "bold" }}>{c.name}</div>
-                        <div style={{ fontSize: "0.8rem", color: "#666" }}>{c.description}</div>
-                    </div>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <Avatar
+                                src={c.image_url}
+                                variant="rounded"
+                                sx={{ width: 48, height: 48, mr: 2, borderRadius: '8px' }}
+                            />
+                            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>#{c.name}</Typography>
+                        </Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ flex: 1, mb: 2, fontSize: '0.8rem' }}>
+                            {c.description}
+                        </Typography>
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            fullWidth
+                            sx={{ borderRadius: '6px', textTransform: 'none', color: '#1a1a1a', borderColor: '#eee' }}
+                        >
+                            表示する
+                        </Button>
+                    </Box>
                 ))}
-            </div>
-        </div>
+            </Box>
+        </Box>
     );
 };

@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { User } from "../types/user";
 import * as api from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { Button, TextField, Box, Avatar, Typography, Paper, Divider } from '@mui/material';
+import { Button, TextField, Box, Avatar, Typography, Divider } from '@mui/material';
 
 interface UserProfileProps {
     user: User;
@@ -53,75 +53,73 @@ export const UserProfile = ({ user, onUserUpdate, onLogout }: UserProfileProps) 
     };
 
     return (
-        <Paper elevation={3} sx={{ padding: 4, mt: 3 }}>
-            <Typography variant="h5" component="h1" gutterBottom sx={{textAlign: 'center'}}>
-                マイページ (プロフィール編集)
-            </Typography>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ maxWidth: 600, mx: 'auto', py: 4, px: 2 }}>
+            {/* ヘッダー情報（表示用） */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 6 }}>
                 <Avatar
                     src={user.icon_url}
                     alt={user.username}
-                    sx={{ width: 80, height: 80, mb: 1 }}
+                    sx={{ width: 100, height: 100, mb: 2, border: '1px solid #eee' }}
                 />
-                <Typography variant="h6">{user.username}</Typography>
-                <Typography variant="body2" color="textSecondary">ID: {user.id}</Typography>
-                <Typography variant="body2" color="textSecondary">メールアドレス: {user.email}</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 800 }}>{user.username}</Typography>
+                <Typography variant="body2" color="text.secondary">ID: {user.id}</Typography>
             </Box>
 
-            <Divider sx={{ my: 3 }}/>
-            <Typography variant="h6" component="h2" gutterBottom>プロフィール編集</Typography>
-            <form onSubmit={handleSave}>
-                <TextField
-                    label="アイコン画像URL"
-                    fullWidth
-                    margin="normal"
-                    value={iconUrl}
-                    onChange={(e) => setIconUrl(e.target.value)}
-                    placeholder="新しいアイコン画像のURL"
-                />
-                <TextField
-                    label="ユーザー名"
-                    fullWidth
-                    margin="normal"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                />
-                <TextField
-                    label="自己紹介"
-                    fullWidth
-                    multiline
-                    rows={4}
-                    margin="normal"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                />
+            <Divider sx={{ my: 4 }} />
 
-                <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    sx={{ mt: 3 }}
-                    disabled={isSaving}
-                >
-                    {isSaving ? '保存中...' : '変更を保存'}
-                </Button>
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>プロフィール設定</Typography>
+
+            <form onSubmit={handleSave}>
+                <Box sx={{ display: 'grid', gap: 3 }}>
+                    <TextField
+                        label="アイコン画像URL"
+                        fullWidth
+                        variant="standard"
+                        value={iconUrl}
+                        onChange={(e) => setIconUrl(e.target.value)}
+                    />
+                    <TextField
+                        label="ユーザー名"
+                        fullWidth
+                        variant="standard"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        required
+                    />
+                    <TextField
+                        label="自己紹介"
+                        fullWidth
+                        multiline
+                        rows={4}
+                        variant="outlined"
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        sx={{ mt: 1 }}
+                    />
+
+                    <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        disabled={isSaving}
+                        sx={{ mt: 2, py: 1.5, fontWeight: 'bold', borderRadius: '8px' }}
+                    >
+                        {isSaving ? '保存中...' : '変更を保存'}
+                    </Button>
+                </Box>
             </form>
 
-            <Divider sx={{ my: 4 }}/>
-
-            <Button
-                onClick={handleLogoutClick}
-                variant="outlined"
-                color="error"
-                fullWidth
-                sx={{ py: 1 }}
-            >
-                ログアウト
-            </Button>
-
-        </Paper>
+            <Box sx={{ mt: 8, pt: 4, borderTop: '1px solid #eee' }}>
+                <Button
+                    onClick={handleLogoutClick}
+                    variant="text"
+                    fullWidth
+                    sx={{ color: '#ff4d4f', fontWeight: 'bold', textTransform: 'none' }}
+                >
+                    ログアウト
+                </Button>
+            </Box>
+        </Box>
     );
 };

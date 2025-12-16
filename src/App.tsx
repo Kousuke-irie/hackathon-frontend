@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Route, Routes, useParams, useNavigate, Navigate } from 'react-router-dom'; // useNavigate, useParamsを追加
+import { BrowserRouter, Route, Routes, useParams, useNavigate, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { auth, provider } from "./firebase";
 import * as api from "./services/api";
@@ -19,46 +19,111 @@ import { Navbar } from './components/Navbar';
 import { UserProfile } from './components/UserProfile';
 import { LikedItems } from './components/LikedItems';
 import { DraftsList } from './components/DraftList';
-import { PurchaseHistory} from "./components/PurchaseHistory.tsx";
-import { InProgressPurchases} from "./components/InProgressPurchases.tsx";
+import { PurchaseHistory} from "./components/PurchaseHistory";
+import { InProgressPurchases} from "./components/InProgressPurchases";
 import { NotFound} from "./components/NotFound";
 
 import type { User } from './types/user';
 
+// ★ モダン・モノトーンテーマの定義
 const theme = createTheme({
     palette: {
-        primary: { main: '#6200ea' }, // パープル
-        secondary: { main: '#ff4081' }, // ピンク
+        mode: 'light',
+        primary: {
+            main: '#1a1a1a', // ほぼ黒
+            contrastText: '#ffffff',
+        },
+        secondary: {
+            main: '#e91e63', // アクセントカラー（いいね等）は維持、または落ち着いたグレーにするなら #757575
+        },
+        background: {
+            default: '#ffffff',
+            paper: '#ffffff',
+        },
+        text: {
+            primary: '#1a1a1a',
+            secondary: '#666666',
+        },
+    },
+    typography: {
+        fontFamily: [
+            '"Helvetica Neue"',
+            'Arial',
+            '"Hiragino Kaku Gothic ProN"',
+            '"Hiragino Sans"',
+            'Meiryo',
+            'sans-serif',
+        ].join(','),
+        button: {
+            textTransform: 'none', // ボタンの英字大文字変換を無効化
+            fontWeight: 600,
+        },
+        h6: {
+            fontWeight: 700,
+            fontSize: '1rem',
+        },
+        h5: {
+            fontWeight: 700,
+        }
+    },
+    components: {
+        MuiButton: {
+            styleOverrides: {
+                root: {
+                    borderRadius: '8px', // 少し丸みを持たせる
+                    padding: '10px 20px',
+                    boxShadow: 'none',
+                    '&:hover': {
+                        boxShadow: 'none',
+                    },
+                },
+            },
+        },
+        MuiAppBar: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: '#ffffff',
+                    color: '#1a1a1a',
+                    boxShadow: 'none',
+                    borderBottom: '1px solid #eeeeee',
+                },
+            },
+        },
+        MuiCard: {
+            styleOverrides: {
+                root: {
+                    boxShadow: 'none', // カードの影を消してフラットに
+                    borderRadius: '0px',
+                }
+            }
+        },
+        MuiInputBase: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: '#f5f5f5', // 入力欄を薄いグレーに
+                    borderRadius: '8px',
+                }
+            }
+        }
     },
 });
-
-//const PrivateRouteWrapper = ({ user, Component }: { user: User, Component: React.FC<any> }) => {
-//    return <Component user={user} />;
-//};
 
 const ItemDetailWrapper = ({ user }: { user: User | null }) => {
     const { id } = useParams();
     const navigate = useNavigate();
-    // ユーザーがnullの場合、ItemDetailコンポーネント内でcurrentUserがUser型であることを保証できないため、nullチェックを強化
-    // ItemDetail コンポーネントの props 型が変更されている可能性があるため、userがnullの場合でもアクセスできるように修正
     return <ItemDetail itemId={Number(id)} currentUser={user} onBack={() => navigate(-1)} />;
 };
 
 const CommunityWrapper = ({ user }: { user: User | null }) => {
     const { id } = useParams();
     const navigate = useNavigate();
-
-    if (!user) return <Navigate to="/"/> // 未ログインならトップへリダイレクト
-
-    // CommunityBoard は user が必要
+    if (!user) return <Navigate to="/"/>
     return <CommunityBoard communityId={Number(id)} currentUser={user} onBack={() => navigate("/communities")} onItemClick={(itemId) => navigate(`/items/${itemId}`)} />;
 };
 
 const SellItemWrapper = ({ user }: { user: User }) => {
     const { id } = useParams();
     const itemId = id ? Number(id) : undefined;
-
-    // SellItemに編集対象のIDを渡す
     return <SellItem user={user} editingItemId={itemId} />;
 };
 
@@ -78,11 +143,10 @@ function App() {
         }
     };
 
-    // ▼▼▼ ログアウト処理 ▼▼▼
     const handleLogout = async () => {
         try {
             await signOut(auth);
-            setUser(null); // ステートをクリア
+            setUser(null);
             alert("ログアウトしました");
         } catch (e) {
             console.error("Logout failed:", e);
@@ -91,21 +155,19 @@ function App() {
     };
 
     const handleUserUpdate = (updatedUser: User) => {
-        setUser(updatedUser); // App.tsxのuserステートを更新
+        setUser(updatedUser);
     };
 
     const handleEditDraft = (id: number) => {
         window.location.href = `/sell/edit/${id}`;
     };
 
-    // ▼▼▼ 認証の永続化ロジック (最重要) ▼▼▼
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
-                // Firebaseセッションがあれば、IDトークンを取得してバックエンドに問い合わせる
                 try {
                     const idToken = await firebaseUser.getIdToken();
-                    const response = await api.loginUser(idToken); // バックエンドで再検証＆DB同期
+                    const response = await api.loginUser(idToken);
                     setUser(response.user);
                 } catch (e) {
                     console.error("Backend sync failed:", e);
@@ -114,45 +176,40 @@ function App() {
             } else {
                 setUser(null);
             }
-            setLoading(false); // 認証状態の確認が完了
+            setLoading(false);
         });
-        return () => unsubscribe(); // クリーンアップ関数
+        return () => unsubscribe();
     }, []);
-    // ▲▲▲ 認証の永続化ロジック ▲▲▲
 
-
-    // 1. ロード中の画面
     if (loading) {
         return (
             <ThemeProvider theme={theme}>
                 <CssBaseline/>
                 <div style={{textAlign: "center", marginTop: "100px"}}>
-                    アプリ起動中...
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Wish</div>
                 </div>
             </ThemeProvider>
         );
     }
 
-        // 2. 未ログイン状態（公開ビューを許可し、特定ルートのみログインを要求する）
-        // ルートで制御するため、ここではルーティング骨格を返す。
-
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline/>
             <BrowserRouter>
-                {/* Navbarはログイン状態とログイン関数を渡す */}
                 <Navbar currentUser={user} onLogin={handleLogin} />
 
-                <div style={{padding: "1rem", maxWidth: "800px", margin: "0 auto", marginTop: "70px"}}>
+                {/* Navbarの高さ分のマージンを確保し、コンテンツ幅を制限 */}
+                <div style={{
+                    padding: "20px",
+                    maxWidth: "1024px",
+                    margin: "0 auto",
+                    marginTop: "120px", // ここを修正 (70px -> 120px)
+                    minHeight: 'calc(100vh - 120px)'
+                }}>
                     <Routes>
-
-                        {/* 公開ルート（未ログインでもアクセス可能） */}
-                        {/* ItemList, ItemDetail は user が null でも動くように調整が必要です */}
                         <Route path="/" element={<ItemList user={user} onItemClick={(id) => window.location.href = `/items/${id}`} />}/>
                         <Route path="/items/:id" element={<ItemDetailWrapper user={user}/>}/>
 
-
-                        {/* 認証が必要なルート (Private Routes) */}
                         {user ? (
                             <>
                                 <Route path="/swipe" element={<SwipeDeck user={user!} />}/>
@@ -168,13 +225,9 @@ function App() {
                                 <Route path="/purchase-in-progress" element={<InProgressPurchases user={user} onItemClick={(id) => window.location.href=`/items/${id}`} />}/>
                             </>
                         ) : (
-                            // 未ログインでアクセスした場合、ログインが必要なパスはトップにリダイレクト
                             <Route path="*" element={<Navigate to="/" replace />} />
-                            // ★ Public View のため、認証が必要なパスは Navigate で弾き、公開パスはそのまま
                         )}
-
                         <Route path="*" element={<NotFound />} />
-
                     </Routes>
                 </div>
             </BrowserRouter>
