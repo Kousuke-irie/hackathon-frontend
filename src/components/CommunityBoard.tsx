@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
+import {Box, Button, Paper, InputBase, FormControl, Typography,MenuItem,Avatar,Select} from "@mui/material";
+import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 
 interface Post {
     id: number;
@@ -60,8 +62,10 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
     const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
 
     useEffect(() => {
-        fetchPostsData(communityId, setPosts);
-        fetchMyItemsData(currentUser.id, setMyItems);
+        (async () => {
+            await fetchPostsData(communityId, setPosts);
+            await fetchMyItemsData(currentUser.id, setMyItems);
+        })();
     }, [communityId, currentUser.id]);
 
     const handlePost = async () => {
@@ -71,7 +75,7 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
             await api.postCommunityPost(communityId, currentUser.id, content, itemIdToPost)
             setContent("");
             setSelectedItemId(null);
-            fetchPostsData(communityId, setPosts);
+            await fetchPostsData(communityId, setPosts);
         } catch (error) {
             alert("投稿失敗");
             console.error(error);
@@ -79,77 +83,106 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
     };
 
     return (
-        <div style={{ padding: "10px", textAlign: "left" }}>
-            <button onClick={onBack} style={{ marginBottom: "10px" }}>&lt; 界隈一覧に戻る</button>
+        <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>
+            <Button
+                onClick={onBack}
+                startIcon={<ArrowBackIosIcon />}
+                sx={{ mb: 3, color: 'text.secondary', fontSize: '0.8rem' }}
+            >
+                界隈一覧に戻る
+            </Button>
 
-            {/* 投稿エリア */}
-            <div style={{ border: "1px solid #ccc", padding: "10px", borderRadius: "8px", marginBottom: "20px" }}>
-                <textarea
+            {/* 投稿エリア: メルカリのコメント欄のような清潔感 */}
+            <Paper elevation={0} sx={{ p: 2, border: '1px solid #eee', borderRadius: '12px', mb: 4 }}>
+                <InputBase
+                    multiline
+                    minRows={2}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="メッセージを入力..."
-                    style={{ width: "100%", height: "60px", marginBottom: "5px" }}
+                    placeholder="この界隈にメッセージを投稿..."
+                    fullWidth
+                    sx={{ p: 1, fontSize: '0.95rem' }}
                 />
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
-                    {/* ▼ 商品シェアのプルダウンを実装 */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, pt: 2, borderTop: '1px solid #f5f5f5' }}>
                     {myItems.length > 0 ? (
-                        <select
-                            onChange={(e) => {
-                                // 選択がない場合は null にする
-                                const value = e.target.value;
-                                setSelectedItemId(value ? Number(value) : null);
-                            }}
-                            style={{ padding: "5px", borderRadius: "5px", border: "1px solid #ccc" }}
-                        >
-                            <option value="">シェアする商品を選ぶ (任意)</option>
-                            {myItems.map(item => (
-                                <option key={item.id} value={item.id}>
-                                    {item.title} (¥{item.price.toLocaleString()})
-                                </option>
-                            ))}
-                        </select>
+                        <FormControl size="small" variant="standard" sx={{ minWidth: 200 }}>
+                            <Select
+                                value={selectedItemId || ''}
+                                displayEmpty
+                                onChange={(e) => setSelectedItemId(e.target.value ? Number(e.target.value) : null)}
+                                renderValue={(selected) => {
+                                    if (!selected) return <Typography variant="caption" color="text.secondary">商品をシェアする (任意)</Typography>;
+                                    const item = myItems.find(i => i.id === selected);
+                                    return <Typography variant="caption">{item?.title}</Typography>;
+                                }}
+                            >
+                                <MenuItem value="">選択しない</MenuItem>
+                                {myItems.map(item => (
+                                    <MenuItem key={item.id} value={item.id}>
+                                        <Typography variant="caption">{item.title} (¥{item.price.toLocaleString()})</Typography>
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
                     ) : (
-                        <span style={{ fontSize: "0.8rem", color: "#999" }}>※販売中の商品がありません</span>
+                        <Typography variant="caption" color="text.secondary">販売中の商品がありません</Typography>
                     )}
 
-                    <button
+                    <Button
                         onClick={handlePost}
-                        style={{ backgroundColor: "#00bcd4", color: "white", border: "none", padding: "5px 15px", borderRadius: "5px", cursor: "pointer" }}
+                        variant="contained"
                         disabled={!content}
+                        sx={{ borderRadius: '20px', px: 3, fontWeight: 'bold' }}
                     >
                         投稿
-                    </button>
-                </div>
-            </div>
+                    </Button>
+                </Box>
+            </Paper>
 
             {/* タイムライン */}
-            <div>
-                {/* ... (投稿のレンダリング部分: 変更なし) */}
+            <Box>
                 {posts.map((post) => (
-                    <div key={post.id} style={{ marginBottom: "15px", borderBottom: "1px solid #eee", paddingBottom: "10px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "5px" }}>
-                            <img src={post.user.icon_url} style={{ width: "30px", height: "30px", borderRadius: "50%" }} />
-                            <strong>{post.user.username}</strong>
-                        </div>
-                        <div>{post.content}</div>
+                    <Box key={post.id} sx={{ mb: 4, pb: 4, borderBottom: '1px solid #f5f5f5' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                            <Avatar src={post.user.icon_url} sx={{ width: 32, height: 32 }} />
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{post.user.username}</Typography>
+                        </Box>
 
-                        {/* シェアされた商品があれば表示 */}
+                        <Typography variant="body2" sx={{ lineHeight: 1.7, color: '#333', mb: 2 }}>
+                            {post.content}
+                        </Typography>
+
                         {post.related_item && (
-                            <div
+                            <Box
                                 onClick={() => onItemClick(post.related_item!.id)}
-                                style={{ marginTop: "5px", padding: "10px", border: "1px solid #ddd", borderRadius: "5px", display: "flex", gap: "10px", cursor: "pointer", backgroundColor: "#f9f9f9" }}
+                                sx={{
+                                    display: 'flex',
+                                    gap: 2,
+                                    p: 1.5,
+                                    border: '1px solid #eee',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    transition: 'background-color 0.2s',
+                                    '&:hover': { bgcolor: '#fafafa' }
+                                }}
                             >
-                                <img src={post.related_item.image_url} style={{ width: "50px", height: "50px", objectFit: "cover" }} />
-                                <div>
-                                    <div style={{ fontWeight: "bold" }}>{post.related_item.title}</div>
-                                    <div style={{ color: "#e91e63" }}>¥{post.related_item.price.toLocaleString()}</div>
-                                </div>
-                            </div>
+                                <Box sx={{ width: 60, height: 60, borderRadius: '4px', overflow: 'hidden', flexShrink: 0 }}>
+                                    <img src={post.related_item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </Box>
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 800, display: 'block' }} noWrap>
+                                        {post.related_item.title}
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#e91e63', fontWeight: 700 }}>
+                                        ¥{post.related_item.price.toLocaleString()}
+                                    </Typography>
+                                </Box>
+                            </Box>
                         )}
-                    </div>
+                    </Box>
                 ))}
-            </div>
-        </div>
+            </Box>
+        </Box>
     );
 };

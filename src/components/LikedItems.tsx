@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import { Typography, Card, CardContent, CardMedia, Box } from '@mui/material';
+import { Typography,Box } from '@mui/material';
 
 interface LikedItemsProps {
     user: User;
@@ -13,7 +13,7 @@ export const LikedItems = ({ user, onItemClick }: LikedItemsProps) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchLikedItems = async () => {
+        (async () => {
             setLoading(true);
             try {
                 // api.tsに fetchLikedItems(userId) を追加するのが理想的だが、
@@ -26,8 +26,7 @@ export const LikedItems = ({ user, onItemClick }: LikedItemsProps) => {
             } finally {
                 setLoading(false);
             }
-        };
-        fetchLikedItems();
+        })();
     }, [user]);
 
     if (loading) return <Typography align="center" sx={{ mt: 5 }}>Loading...</Typography>;
@@ -36,42 +35,36 @@ export const LikedItems = ({ user, onItemClick }: LikedItemsProps) => {
     }
 
     return (
-        <Box sx={{ mt: 3 }}>
-            <Typography variant="h5" gutterBottom>いいねした商品 ({items.length})</Typography>
+        <Box sx={{ maxWidth: 1024, mx: 'auto', p: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>
+                いいね！した商品 ({items.length})
+            </Typography>
+
             <Box
                 sx={{
                     display: 'grid',
-                    gap: 2, // Gridの間隔 (spacing={2}に相当)
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', // レスポンシブな2〜4列レイアウト
-                    mt: 2
+                    gap: '20px 12px',
+                    gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr 1fr', md: '1fr 1fr 1fr 1fr' },
                 }}
             >
                 {items.map((item) => (
                     <Box
                         key={item.id}
                         onClick={() => onItemClick(item.id)}
-                        sx={{ cursor: 'pointer', height: '100%' }}
+                        sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
                     >
-                        <Card sx={{ height: '100%' }}>
-                            <CardMedia
-                                component="img"
-                                height="140"
-                                image={item.image_url}
-                                alt={item.title}
-                            />
-                                <CardContent>
-                                    <Typography gutterBottom variant="subtitle2" component="div" noWrap>
-                                        {item.title}
-                                    </Typography>
-                                    <Typography variant="h6" color="primary">
-                                        ¥{item.price.toLocaleString()}
-                                    </Typography>
-                                </CardContent>
-                            </Card>
+                        <Box sx={{ position: 'relative', width: '100%', pt: '100%', borderRadius: '4px', overflow: 'hidden', bgcolor: '#f5f5f5', mb: 1 }}>
+                            <img src={item.image_url} alt="" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                         </Box>
-
-                    ))}
-                </Box>
+                        <Typography variant="caption" sx={{ fontWeight: 800, display: 'block' }} noWrap>
+                            {item.title}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#e91e63' }}>
+                            ¥{item.price.toLocaleString()}
+                        </Typography>
+                    </Box>
+                ))}
+            </Box>
         </Box>
     );
 };

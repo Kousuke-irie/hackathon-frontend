@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import { Grid, Typography, Box, Card, CardMedia, CardContent, Button } from '@mui/material';
+import { Typography, Box,  Button } from '@mui/material';
 
 interface DraftsListProps {
     user: User;
@@ -35,48 +35,45 @@ export const DraftsList = ({ user, onEditDraft }: DraftsListProps) => {
     }
 
     return (
-        <Box sx={{ mt: 3 }}>
-            <Typography variant="h5" gutterBottom>下書き ({items.length})</Typography>
-            <Grid container spacing={2}>
+        <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>
+                下書き一覧 ({items.length})
+            </Typography>
+
+            <Box sx={{ display: 'grid', gap: 2 }}>
                 {items.map((item) => (
                     <Box
                         key={item.id}
                         onClick={() => onEditDraft(item.id)}
                         sx={{
+                            display: 'flex',
+                            p: 1.5,
+                            border: '1px solid #eee',
+                            borderRadius: '8px',
                             cursor: 'pointer',
-                            height: '100%',
-                            border: "1px solid #eee",
-                            borderRadius: "8px",
-                            overflow: "hidden",
-                            boxShadow: "0 2px 5px rgba(0,0,0,0.05)"
+                            transition: 'border-color 0.2s',
+                            '&:hover': { borderColor: '#1a1a1a' }
                         }}
                     >
-                        <Card sx={{ display: 'flex', height: '100%' }}>
-                            <CardMedia
-                                component="img"
-                                sx={{ width: 100 }}
-                                image={item.image_url || 'https://placehold.jp/100x100.png'}
-                                alt={item.title}
-                            />
-                            <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                                <CardContent sx={{ flex: '1 0 auto', p: 1 }}>
-                                    <Typography component="div" variant="h6" noWrap>
-                                        {item.title || "タイトル未設定"}
-                                    </Typography>
-                                    <Typography variant="subtitle1" color="text.secondary" component="div">
-                                        ¥{item.price.toLocaleString() || '---'}
-                                    </Typography>
-                                </CardContent>
-                                <Box sx={{ display: 'flex', p: 1, justifyContent: 'flex-end' }}>
-                                    <Button size="small" onClick={() => onEditDraft(item.id)} color="primary">
-                                        編集再開
-                                    </Button>
-                                </Box>
-                            </Box>
-                        </Card>
+                        <Box sx={{ width: 80, height: 80, borderRadius: '4px', overflow: 'hidden', bgcolor: '#f5f5f5', flexShrink: 0 }}>
+                            <img src={item.image_url || 'https://placehold.jp/100x100.png'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </Box>
+                        <Box sx={{ flex: 1, ml: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>
+                                {item.title || "タイトル未設定"}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                ¥{item.price ? item.price.toLocaleString() : '---'}
+                            </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Button size="small" variant="text" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                                編集
+                            </Button>
+                        </Box>
                     </Box>
                 ))}
-            </Grid>
+            </Box>
         </Box>
     );
 };

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import TinderCard from "react-tinder-card";
 import * as api from "../services/api";
 import type { User } from "../types/user";
+import {Box,Typography} from "@mui/material";
 
 interface Item {
     id: number;
@@ -21,7 +22,7 @@ export const SwipeDeck = ({ user }: SwipeDeckProps) => {
 
     // 1. 未スワイプの商品を取得
     useEffect(() => {
-        const fetchItems = async () => {
+        (async () => {
             if (!user) return;
             try {
                 const res = await api.fetchSwipeItems(user.id);
@@ -29,8 +30,7 @@ export const SwipeDeck = ({ user }: SwipeDeckProps) => {
             } catch (error) {
                 console.error("Failed to fetch swipe items:", error);
             }
-        };
-        fetchItems();
+        })();
     }, [user]);
 
     // 2. スワイプした時の処理
@@ -64,61 +64,75 @@ export const SwipeDeck = ({ user }: SwipeDeckProps) => {
     }
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <h2>Discover Items</h2>
-            <div className="cardContainer" style={{ position: "relative", width: "300px", height: "400px" }}>
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 4 }}>
+            <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>Discover</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+                気になる商品を左右にスワイプ
+            </Typography>
+
+            <Box className="cardContainer" sx={{ position: "relative", width: "320px", height: "480px" }}>
                 {items.map((item) => (
                     <TinderCard
                         className="swipe"
                         key={item.id}
                         onSwipe={(dir) => swiped(dir, item)}
                         onCardLeftScreen={() => outOfFrame(item.title)}
-                        preventSwipe={["up", "down"]} // 上下スワイプは無効化
+                        preventSwipe={["up", "down"]}
                     >
-                        <div
-                            style={{
+                        <Box
+                            sx={{
                                 position: "absolute",
-                                backgroundColor: "#fff",
-                                width: "300px",
-                                height: "400px",
-                                maxWidth: "85vw",
-                                maxHeight: "50vh",
-                                boxShadow: "0px 0px 60px 0px rgba(0,0,0,0.30)",
-                                borderRadius: "20px",
-                                backgroundSize: "cover",
-                                backgroundPosition: "center",
-                                backgroundImage: `url(${item.image_url})`,
+                                bgcolor: "#fff",
+                                width: "320px",
+                                height: "480px",
+                                boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                                borderRadius: "16px",
+                                overflow: "hidden",
+                                display: 'flex',
+                                flexDirection: 'column'
                             }}
                         >
-                            <div
-                                style={{
-                                    position: "absolute",
-                                    bottom: "0",
-                                    width: "100%",
-                                    color: "#fff",
-                                    padding: "20px",
-                                    background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)",
-                                    borderRadius: "0 0 20px 20px",
-                                    boxSizing: "border-box"
-                                }}
-                            >
-                                <h3 style={{ margin: 0 }}>{item.title}</h3>
-                                <h4 style={{ margin: "5px 0" }}>¥{item.price.toLocaleString()}</h4>
-                            </div>
-                        </div>
+                            <Box sx={{ flex: 1, position: 'relative' }}>
+                                <img
+                                    src={item.image_url}
+                                    alt={item.title}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                                <Box sx={{
+                                    position: 'absolute',
+                                    bottom: 0, left: 0, right: 0,
+                                    p: 3,
+                                    background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
+                                    color: '#fff'
+                                }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 800 }}>{item.title}</Typography>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                        ¥{item.price.toLocaleString()}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </Box>
                     </TinderCard>
                 ))}
-            </div>
+            </Box>
+
+            <Box sx={{ mt: 6, display: 'flex', gap: 4, alignItems: 'center' }}>
+                <Typography variant="caption" sx={{ color: '#ff4d4f', fontWeight: 'bold' }}>← NOPE</Typography>
+                <Typography variant="caption" sx={{ color: '#52c41a', fontWeight: 'bold' }}>LIKE →</Typography>
+            </Box>
 
             {lastDirection && (
-                <h3 style={{ marginTop: "20px", color: lastDirection === "right" ? "green" : "red" }}>
-                    You swiped {lastDirection}
-                </h3>
+                <Typography
+                    variant="body2"
+                    sx={{
+                        mt: 2,
+                        fontWeight: 'bold',
+                        color: lastDirection === "right" ? "#52c41a" : "#ff4d4f"
+                    }}
+                >
+                    {lastDirection === "right" ? "LIKEしました！" : "スキップしました"}
+                </Typography>
             )}
-
-            <p style={{ marginTop: "10px", color: "#666" }}>
-                ← Nope / Like →
-            </p>
-        </div>
+        </Box>
     );
 };
