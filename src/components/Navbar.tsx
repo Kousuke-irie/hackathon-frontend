@@ -1,4 +1,4 @@
-import { Link as RouterLink, useSearchParams } from "react-router-dom";
+import { Link as RouterLink, useSearchParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
     AppBar, Toolbar, Button, Box, Typography,
@@ -32,12 +32,13 @@ const CATEGORY_LINKS = [
 
 export const Navbar = ({ currentUser, onLogin, onLogout }: NavbarProps) => {
     const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     // WebSocket通知Hook
-    const { unreadCount } = useNotifications(currentUser?.id);
+    const { unreadCount } = useNotifications({ user: currentUser ?? undefined });
 
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
@@ -119,7 +120,7 @@ export const Navbar = ({ currentUser, onLogin, onLogout }: NavbarProps) => {
                                 {/* お知らせ：クリックでページ遷移 */}
                                 <IconButton
                                     color="inherit"
-                                    onClick={() => window.location.href = '/notifications'}
+                                    onClick={() => navigate('/notifications')}
                                     sx={{ flexDirection: 'column' }}
                                 >
                                     <Badge badgeContent={unreadCount} color="error">

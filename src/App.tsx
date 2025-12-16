@@ -129,9 +129,10 @@ const SellItemWrapper = ({ user }: { user: User }) => {
     return <SellItem user={user} editingItemId={itemId} />;
 };
 
-function App() {
+function AppContent() {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     const handleLogin = async () => {
         try {
@@ -161,7 +162,7 @@ function App() {
     };
 
     const handleEditDraft = (id: number) => {
-        window.location.href = `/sell/edit/${id}`;
+        navigate(`/sell/edit/${id}`);
     };
 
     useEffect(() => {
@@ -195,9 +196,7 @@ function App() {
     }
 
     return (
-        <ThemeProvider theme={theme}>
-            <CssBaseline/>
-            <BrowserRouter>
+        <>
                 {/* Navbar にログアウト関数を渡すように修正 */}
                 <Navbar currentUser={user} onLogin={handleLogin} onLogout={handleLogout} />
 
@@ -210,27 +209,26 @@ function App() {
                 }}>
                     <Routes>
                         {/* 画面遷移に window.location.href を使用 */}
-                        <Route path="/" element={<ItemList user={user} onItemClick={(id) => window.location.href = `/items/${id}`} />}/>
+                        <Route path="/" element={<ItemList user={user} onItemClick={(id) => navigate(`/items/${id}`)} />}/>
                         <Route path="/items/:id" element={<ItemDetailWrapper user={user}/>}/>
 
                         {user ? (
                             <>
-                                {/* マイページハブ構造 */}
                                 <Route path="/mypage" element={<MyPageLayout />}>
-                                    <Route index element={<InProgressPurchases user={user} onItemClick={(id) => window.location.href = `/items/${id}`} />} />
-                                    <Route path="listings" element={<MyItems user={user} onItemClick={(id) => window.location.href = `/items/${id}`} />} />
-                                    <Route path="purchases" element={<PurchaseHistory user={user} onItemClick={(id) => window.location.href = `/items/${id}`} />} />
+                                    <Route index element={<InProgressPurchases user={user} onItemClick={(id) => navigate(`/items/${id}`)} />} />
+                                    <Route path="listings" element={<MyItems user={user} onItemClick={(id) => navigate(`/items/${id}`)} />} />
+                                    <Route path="purchases" element={<PurchaseHistory user={user} onItemClick={(id) => navigate(`/items/${id}`)} />} />
                                     <Route path="drafts" element={<DraftsList user={user} onEditDraft={handleEditDraft} />} />
                                 </Route>
 
                                 <Route path="/profile" element={<UserProfile user={user} onUserUpdate={handleUserUpdate} onLogout={handleLogout}/>}/>
-                                <Route path="/mylikes" element={<LikedItems user={user} onItemClick={(id:number) => window.location.href = `/items/${id}`} />}/>
+                                <Route path="/mylikes" element={<LikedItems user={user} onItemClick={(id:number) => navigate(`/items/${id}`)} />}/>
                                 <Route path="/sell" element={<SellItemWrapper user={user} />}/>
                                 <Route path="/sell/edit/:id" element={<SellItemWrapper user={user} />}/>
                                 <Route path="/swipe" element={<SwipeDeck user={user!} />}/>
-                                <Route path="/communities" element={<CommunityList onSelectCommunity={(id) => window.location.href = `/communities/${id}`} />}/>
+                                <Route path="/communities" element={<CommunityList onSelectCommunity={(id) => navigate(`/communities/${id}`)} />}/>
                                 <Route path="/communities/:id" element={<CommunityWrapper user={user}/>}/>
-                                <Route path="/notifications" element={user ? <NotificationsPage user={user} /> : <Navigate to="/" />} />
+                                <Route path="/notifications" element={<NotificationsPage user={user} />} />
                             </>
                         ) : (
                             <Route path="*" element={<Navigate to="/" replace />} />
@@ -238,6 +236,16 @@ function App() {
                         <Route path="*" element={<NotFound />} />
                     </Routes>
                 </div>
+        </>
+    );
+}
+
+function App() {
+    return (
+        <ThemeProvider theme={theme}>
+            <CssBaseline/>
+            <BrowserRouter>
+                <AppContent />
             </BrowserRouter>
         </ThemeProvider>
     );

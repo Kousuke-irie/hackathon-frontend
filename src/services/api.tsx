@@ -408,3 +408,13 @@ export const fetchConditions = async (): Promise<ProductCondition[]> => {
     const response = await client.get('/meta/conditions');
     return response.data.conditions;
 };
+
+export const fetchNotifications = async (userId: number) => {
+    const response = await fetch(`${API_URL}/my/notifications`, {
+        headers: {
+            'X-User-ID': userId.toString(),
+        },
+    });
+    if (!response.ok) throw new Error('Failed to fetch notifications');
+    return response.json();
+};
