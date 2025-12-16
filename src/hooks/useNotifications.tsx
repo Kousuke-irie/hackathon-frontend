@@ -1,78 +1,92 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type {Notification}  from '../types/notification';
+import type { Notification } from '../types/notification';
 import * as api from '../services/api';
 import type { User } from '../types/user';
 
-export const useNotifications = ({ user }: { user: User | undefined }) => {
+export const useNotifications = ({ user }: { user: User | undefined | null }) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const socketRef = useRef<WebSocket | null>(null);
-    const [_loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
 
+    // 💡 過去の通知取得ロジックの修正
     useEffect(() => {
-        if (!user) return;
-        const loadNotifications = async () => {
+        // ユーザーが存在しない、または ID がない場合はリセットして終了
+        if (!user?.id) {
+            setNotifications([]);
+            setUnreadCount(0);
+            return;
+        }
+
+        (async () => {
             setLoading(true);
             try {
                 const data = await api.fetchNotifications(user.id);
-                // バックエンドが { notifications: [...] } の形式で返す場合
-                setNotifications(data.notifications);
+                // 🚨 エラー対策: data.notifications が null や undefined の場合に備えて空配列をデフォルトにする
+                const fetchedList = data?.notifications || [];
+                setNotifications(fetchedList);
             } catch (error) {
                 console.error("通知の取得に失敗しました:", error);
             } finally {
                 setLoading(false);
             }
-        };
+        })();
+    }, [user?.id]); // 依存配列を user.id に限定して安定させる
 
-        if (user) {
-            (async ()=> {
-                await loadNotifications();
-            })();
-        }
-    }, [user]);
-
+    // 💡 WebSocket接続ロジックの修正
     const connect = useCallback(() => {
         if (!user?.id) return;
 
+        // 既存の接続があればクリーンアップ
         if (socketRef.current) {
             socketRef.current.close();
         }
 
-        // VITE_WS_URL があれば使い、なければ API_URL の http を ws に置換して作る例
         const apiBaseUrl = import.meta.env.VITE_APP_API_URL || 'http://localhost:8080';
         const defaultWsUrl = apiBaseUrl.replace(/^http/, 'ws');
         const wsUrl = `${import.meta.env.VITE_WS_URL || defaultWsUrl}/ws/notifications?user_id=${user.id}`;
 
         console.log("Connecting to WS:", wsUrl);
 
-        const socket = new WebSocket(wsUrl);
-        socketRef.current = socket;
+        try {
+            const socket = new WebSocket(wsUrl);
+            socketRef.current = socket;
 
-        socket.onmessage = (event) => {
-            try {
-                const newNotification: Notification = JSON.parse(event.data);
-                setNotifications((prev) => [newNotification, ...prev]);
-                setUnreadCount((prev) => prev + 1);
-            } catch (err) {
-                console.error("Failed to parse notification:", err);
-            }
-        };
+            socket.onmessage = (event) => {
+                try {
+                    const newNotification: Notification = JSON.parse(event.data);
+                    setNotifications((prev) => [newNotification, ...(prev || [])]);
+                    setUnreadCount((prev) => prev + 1);
+                } catch (err) {
+                    console.error("Failed to parse notification:", err);
+                }
+            };
 
-        socket.onclose = () => {
-            console.log('WebSocket disconnected. Reconnecting...');
-        };
-        socket.onerror = (err) => {
-            console.error("WebSocket Error:", err);
-        };
+            socket.onclose = (e) => {
+                if (e.wasClean) {
+                    console.log('WebSocket closed cleanly.');
+                } else {
+                    console.log('WebSocket connection lost. Reconnecting in 5s...');
+                    // 切断された場合の再接続（無限ループ防止のため5秒空ける）
+                    setTimeout(() => {
+                        if (user?.id) connect();
+                    }, 5000);
+                }
+            };
+
+            socket.onerror = (err) => {
+                console.error("WebSocket Error:", err);
+            };
+        } catch (e) {
+            console.error("WebSocket setup failed:", e);
+        }
     }, [user?.id]);
 
     useEffect(() => {
-        if (!user?.id) return;
-        if (user.id) {
+        if (user?.id) {
             connect();
         }
 
-        // クリーンアップ関数
         return () => {
             if (socketRef.current) {
                 socketRef.current.close();
@@ -81,5 +95,5 @@ export const useNotifications = ({ user }: { user: User | undefined }) => {
         };
     }, [user?.id, connect]);
 
-    return { notifications, unreadCount, setUnreadCount };
+    return { notifications, unreadCount, setUnreadCount, loading };
 };
