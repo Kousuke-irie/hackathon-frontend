@@ -22,6 +22,7 @@ import { DraftsList } from './components/DraftList';
 import { PurchaseHistory} from "./components/PurchaseHistory";
 import { InProgressPurchases} from "./components/InProgressPurchases";
 import { NotFound} from "./components/NotFound";
+import {MyPageLayout} from "./components/MyPageLayout.tsx";
 
 import type { User } from './types/user';
 
@@ -196,33 +197,38 @@ function App() {
         <ThemeProvider theme={theme}>
             <CssBaseline/>
             <BrowserRouter>
-                <Navbar currentUser={user} onLogin={handleLogin} />
+                {/* Navbar にログアウト関数を渡すように修正 */}
+                <Navbar currentUser={user} onLogin={handleLogin} onLogout={handleLogout} />
 
-                {/* Navbarの高さ分のマージンを確保し、コンテンツ幅を制限 */}
                 <div style={{
                     padding: "20px",
                     maxWidth: "1024px",
                     margin: "0 auto",
-                    marginTop: "120px", // ここを修正 (70px -> 120px)
+                    marginTop: "120px",
                     minHeight: 'calc(100vh - 120px)'
                 }}>
                     <Routes>
+                        {/* 画面遷移に window.location.href を使用 */}
                         <Route path="/" element={<ItemList user={user} onItemClick={(id) => window.location.href = `/items/${id}`} />}/>
                         <Route path="/items/:id" element={<ItemDetailWrapper user={user}/>}/>
 
                         {user ? (
                             <>
-                                <Route path="/swipe" element={<SwipeDeck user={user!} />}/>
-                                <Route path="/communities" element={<CommunityList onSelectCommunity={(id) => window.location.href = `/communities/${id}`} />}/>
-                                <Route path="/communities/:id" element={<CommunityWrapper user={user}/>}/>
-                                <Route path="/myitems" element={<MyItems user={user} onItemClick={(id) => window.location.href = `/items/${id}`} />}/>
-                                <Route path="/drafts" element={<DraftsList user={user} onEditDraft={handleEditDraft} />}/>
-                                <Route path="/purchases" element={<PurchaseHistory user={user} onItemClick={(id) => window.location.href = `/items/${id}`} />}/>
+                                {/* マイページハブ構造 */}
+                                <Route path="/mypage" element={<MyPageLayout />}>
+                                    <Route index element={<InProgressPurchases user={user} onItemClick={(id) => window.location.href = `/items/${id}`} />} />
+                                    <Route path="listings" element={<MyItems user={user} onItemClick={(id) => window.location.href = `/items/${id}`} />} />
+                                    <Route path="purchases" element={<PurchaseHistory user={user} onItemClick={(id) => window.location.href = `/items/${id}`} />} />
+                                    <Route path="drafts" element={<DraftsList user={user} onEditDraft={handleEditDraft} />} />
+                                </Route>
+
+                                <Route path="/profile" element={<UserProfile user={user} onUserUpdate={handleUserUpdate} onLogout={handleLogout}/>}/>
                                 <Route path="/mylikes" element={<LikedItems user={user} onItemClick={(id:number) => window.location.href = `/items/${id}`} />}/>
                                 <Route path="/sell" element={<SellItemWrapper user={user} />}/>
                                 <Route path="/sell/edit/:id" element={<SellItemWrapper user={user} />}/>
-                                <Route path="/profile" element={<UserProfile user={user} onUserUpdate={handleUserUpdate} onLogout={handleLogout}/>}/>
-                                <Route path="/purchase-in-progress" element={<InProgressPurchases user={user} onItemClick={(id) => window.location.href=`/items/${id}`} />}/>
+                                <Route path="/swipe" element={<SwipeDeck user={user!} />}/>
+                                <Route path="/communities" element={<CommunityList onSelectCommunity={(id) => window.location.href = `/communities/${id}`} />}/>
+                                <Route path="/communities/:id" element={<CommunityWrapper user={user}/>}/>
                             </>
                         ) : (
                             <Route path="*" element={<Navigate to="/" replace />} />
