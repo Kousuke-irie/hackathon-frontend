@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import { Box, Typography, Card, CardContent, CardMedia, Grid, Chip, Button, Dialog, DialogTitle, DialogContent, Rating, TextField } from '@mui/material';
-import DoNotDisturbAltIcon from '@mui/icons-material/DoNotDisturbAlt';
+import { Box, Typography, Paper,Chip, Button, Dialog, DialogTitle, DialogContent, Rating, TextField } from '@mui/material';
 import { getStatusChipProps} from "../utils/transaction-helpers.tsx";
 
 interface PurchaseHistoryProps {
@@ -97,148 +96,111 @@ export const PurchaseHistory = ({ user, onItemClick }: PurchaseHistoryProps) => 
     }
 
     return (
-        <Box sx={{ mt: 3, p: 2 }}>
-            <Typography variant="h5" gutterBottom>取引履歴</Typography>
+        <Box sx={{ maxWidth: 800, mx: 'auto', p: 2, pb: 10 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>取引履歴</Typography>
 
-            {/* ▼ 修正: Gridコンテナ内に tx.map を配置 ▼ */}
-            <Grid container spacing={2}>
+            <Box sx={{ display: 'grid', gap: 3 }}>
                 {transactions.map((tx) => {
-                    // tx.Status が string | undefined の可能性があるため、'PURCHASED'をデフォルトに
                     const txStatus = tx.Status || 'PURCHASED';
-                    const chipProps = getStatusChipProps(txStatus);
                     const isSeller = tx.item.seller.id === user.id;
 
                     return (
-                        // Grid item は map の内部でレンダリングする
-                        <Box
+                        <Paper
                             key={tx.id}
-                            // Grid item の代わりに Box を使用し、直接スタイルを適用
-                            sx={{
-                                width: '100%',
-                                cursor: 'pointer',
-                                border: '1px solid #ccc',
-                                borderRadius: '8px',
-                                overflow: 'hidden',
-                                boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-                            }}
-                            // クリックで詳細へ遷移
-                            onClick={() => onItemClick(tx.item.id)}
+                            elevation={0}
+                            sx={{ border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden' }}
                         >
-                            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-
-                                {/* 商品画像と基本情報エリア */}
-                                <Box sx={{ display: 'flex', cursor: 'pointer' }} onClick={() => onItemClick(tx.item.id)}>
-                                    <CardMedia
-                                        component="img"
-                                        sx={{ width: 100, height: 100, objectFit: 'cover' }}
-                                        image={tx.item.image_url}
-                                        alt={tx.item.title}
-                                    />
-                                    <CardContent sx={{ flex: '1 0 auto', p: 2, pb: 1 }}>
-                                        <Typography component="div" variant="subtitle1" noWrap>
-                                            {tx.item.title}
-                                        </Typography>
-                                        <Typography variant="subtitle1" color="text.secondary" component="div">
-                                            ¥{tx.price_snapshot.toLocaleString()}
-                                        </Typography>
-                                    </CardContent>
+                            <Box sx={{ display: 'flex', p: 2, cursor: 'pointer' }} onClick={() => onItemClick(tx.item.id)}>
+                                <Box sx={{ width: 100, height: 100, borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
+                                    <img src={tx.item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 </Box>
+                                <Box sx={{ flex: 1, ml: 2 }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                        <Chip
+                                            label={getStatusChipProps(txStatus).label}
+                                            size="small"
+                                            sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}
+                                        />
+                                        <Typography variant="caption" sx={{ color: isSeller ? '#52c41a' : 'text.secondary', fontWeight: 'bold' }}>
+                                            {isSeller ? '出品した取引' : '購入した取引'}
+                                        </Typography>
+                                    </Box>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>{tx.item.title}</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 700 }}>¥{tx.price_snapshot.toLocaleString()}</Typography>
+                                </Box>
+                            </Box>
 
-                                {/* ステータスとアクションエリア */}
-                                <Box sx={{ p: 2, pt: 0, mt: 'auto' }}>
-                                    <Chip label={chipProps.label} size="small" color={chipProps.color} variant="outlined" />
-
-                                    <Typography variant="caption" sx={{ ml: 1, color: isSeller ? 'green' : 'inherit' }}>
-                                        {isSeller ? '出品した取引' : '購入した取引'}
-                                    </Typography>
-
-                                    {/* 発送完了ボタン (出品者かつ発送待ちの場合のみ) */}
+                            {/* アクションエリア: 必要な時だけ表示 */}
+                            {( (isSeller && txStatus === 'PURCHASED') || (!isSeller && txStatus === 'SHIPPED') || (!isSeller && txStatus === 'PURCHASED') ) && (
+                                <Box sx={{ px: 2, pb: 2, display: 'flex', gap: 1 }}>
                                     {isSeller && txStatus === 'PURCHASED' && (
                                         <Button
-                                            size="small"
+                                            fullWidth
                                             variant="contained"
-                                            color="primary"
-                                            onClick={(e) => {
-                                                e.stopPropagation(); // Card全体のクリックイベントを無効化
-                                                (async ()=> {
-                                                    await handleShipment(tx.id);
-                                                })();
-                                            }}
-                                            sx={{ mt: 1, display: 'block' }}
+                                            size="small"
+                                            onClick={(e) => { e.stopPropagation(); handleShipment(tx.id).catch(console.error); }}
+                                            sx={{ bgcolor: '#1a1a1a', fontWeight: 'bold' }}
                                         >
-                                            発送完了
+                                            発送を完了する
                                         </Button>
                                     )}
-                                    // ステータスが「配送中」の場合、購入者に評価ボタンを表示
                                     {!isSeller && txStatus === 'SHIPPED' && (
                                         <Button
-                                            size="small"
+                                            fullWidth
                                             variant="contained"
                                             color="success"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedTxId(tx.id);
-                                                setReviewModalOpen(true); // モーダルを開く
-                                            }}
-                                            sx={{ mt: 1, display: 'block' }}
+                                            size="small"
+                                            onClick={(e) => { e.stopPropagation(); setSelectedTxId(tx.id); setReviewModalOpen(true); }}
+                                            sx={{ fontWeight: 'bold' }}
                                         >
-                                            受け取り評価
+                                            受け取り評価をする
                                         </Button>
                                     )}
                                     {!isSeller && txStatus === 'PURCHASED' && (
                                         <Button
-                                            size="small"
-                                            color="error"
+                                            fullWidth
                                             variant="outlined"
-                                            startIcon={<DoNotDisturbAltIcon />}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                (async ()=> {
-                                                    await handleCancel(tx.id);
-                                                })();
-                                            }}
+                                            color="error"
+                                            size="small"
+                                            onClick={(e) => { e.stopPropagation(); handleCancel(tx.id).catch(console.error); }}
+                                            sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}
                                         >
-                                            キャンセル
+                                            取引をキャンセル
                                         </Button>
                                     )}
                                 </Box>
-                            </Card>
-                        </Box>
+                            )}
+                        </Paper>
                     );
                 })}
-            </Grid>
-            {/* ▲ 修正終わり ▲ */}
-            {/* ▼▼▼ 評価モーダル ▼▼▼ */}
-            <Dialog open={reviewModalOpen} onClose={() => setReviewModalOpen(false)}>
-                <DialogTitle>受け取り評価</DialogTitle>
+            </Box>
+
+            {/* 評価モーダル（Dialog） */}
+            <Dialog open={reviewModalOpen} onClose={() => setReviewModalOpen(false)} slotProps={{
+                paper: { sx: { borderRadius: '12px', p: 1 } }
+            }}>
+                <DialogTitle sx={{ fontWeight: 800 }}>受け取り評価</DialogTitle>
                 <Box component="form" onSubmit={handleReviewSubmit}>
                     <DialogContent>
-                        <Typography component="legend" sx={{mb: 1}}>評価 (5段階)</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, display: 'block' }}>満足度を選んでください</Typography>
                         <Rating
-                            name="rating"
                             value={reviewRating}
                             onChange={(_e, newValue) => setReviewRating(newValue || 5)}
-                            sx={{mb: 2}}
+                            sx={{ mb: 3 }}
                         />
                         <TextField
-                            autoFocus
-                            margin="dense"
-                            label="コメント"
-                            type="text"
+                            label="コメント（任意）"
                             fullWidth
                             multiline
-                            rows={4}
+                            rows={3}
+                            variant="outlined"
                             value={reviewComment}
                             onChange={(e) => setReviewComment(e.target.value)}
                         />
                     </DialogContent>
-                    <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        <Button onClick={() => setReviewModalOpen(false)} color="secondary">
-                            キャンセル
-                        </Button>
-                        <Button type="submit" variant="contained" color="primary">
-                            評価を送信
-                        </Button>
+                    <Box sx={{ p: 2, display: 'flex', gap: 1 }}>
+                        <Button onClick={() => setReviewModalOpen(false)} sx={{ flex: 1, color: 'text.secondary' }}>キャンセル</Button>
+                        <Button type="submit" variant="contained" sx={{ flex: 2, fontWeight: 'bold' }}>評価を送信</Button>
                     </Box>
                 </Box>
             </Dialog>

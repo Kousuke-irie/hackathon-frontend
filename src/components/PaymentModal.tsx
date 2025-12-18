@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
 import * as api from "../services/api";
+import {Box,Paper,Typography,Button} from "@mui/material";
 
 interface PaymentModalProps {
     itemId: number;
@@ -50,33 +51,49 @@ export const PaymentModal = ({ itemId, buyerId, onClose, onSuccess }: PaymentMod
     };
 
     return (
-        <div style={{
+        <Box sx={{
             position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000
+            bgcolor: "rgba(0,0,0,0.7)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 2000,
+            backdropFilter: 'blur(4px)' // 背景をぼかしてモダンに
         }}>
-            <div style={{ backgroundColor: "white", padding: "30px", borderRadius: "10px", width: "90%", maxWidth: "500px" }}>
-                <h2 style={{ marginTop: 0 }}>決済情報の入力</h2>
+            <Paper sx={{ p: 4, borderRadius: '16px', width: "90%", maxWidth: "450px", border: '1px solid #eee' }}>
+                <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>お支払い情報</Typography>
 
                 <form onSubmit={handleSubmit}>
-                    {/* Stripeが提供する安全な入力フォーム */}
-                    <PaymentElement />
+                    <Box sx={{ mb: 3 }}>
+                        <PaymentElement />
+                    </Box>
 
-                    {errorMessage && <div style={{ color: "red", marginTop: "10px" }}>{errorMessage}</div>}
+                    {errorMessage && (
+                        <Typography variant="caption" sx={{ color: 'error.main', mb: 2, display: 'block' }}>
+                            {errorMessage}
+                        </Typography>
+                    )}
 
-                    <div style={{ marginTop: "20px", display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-                        <button type="button" onClick={onClose} style={{ padding: "10px", border: "none", cursor: "pointer" }}>
+                    <Box sx={{ display: "flex", gap: 2, mt: 4 }}>
+                        <Button
+                            onClick={onClose}
+                            sx={{ flex: 1, color: 'text.secondary', fontWeight: 'bold' }}
+                        >
                             キャンセル
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="submit"
                             disabled={!stripe || isProcessing}
-                            style={{ padding: "10px 20px", backgroundColor: "#e91e63", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", opacity: isProcessing ? 0.5 : 1 }}
+                            variant="contained"
+                            sx={{
+                                flex: 2,
+                                bgcolor: '#e91e63',
+                                fontWeight: 'bold',
+                                py: 1.5,
+                                '&:hover': { bgcolor: '#c2185b' }
+                            }}
                         >
-                            {isProcessing ? "処理中..." : "支払う"}
-                        </button>
-                    </div>
+                            {isProcessing ? "処理中..." : "支払いを確定する"}
+                        </Button>
+                    </Box>
                 </form>
-            </div>
-        </div>
+            </Paper>
+        </Box>
     );
 };

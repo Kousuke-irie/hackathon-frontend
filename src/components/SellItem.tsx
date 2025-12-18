@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import axios from "axios";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import { Box, TextField, Button, Select, MenuItem, InputLabel, FormControl, CircularProgress, Typography } from '@mui/material';
+import { Box, TextField, Button, Select, MenuItem, InputLabel, FormControl, CircularProgress, Typography, Paper,Divider } from '@mui/material';
 import ImageSearchIcon from '@mui/icons-material/ImageSearch'; // MUIアイコンを追加
 
 // 型の定義（外部ファイルからインポートしている前提）
@@ -202,35 +203,50 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
 
         setIsSaving(true);
         try {
-            // 1. フォームデータの構築 (PUTとPOSTでほぼ共通)
-            const formData = new FormData();
+            let finalImageUrl = existingImageURL; // 既存画像URLを初期値とする
 
-            formData.append("title", title);
-            formData.append("description", description);
-            formData.append("price", price.toString());
-            formData.append("seller_id", user.id.toString());
-
-            // 💡 画像の処理: 新しい画像ファイルがあればそれを、なければ何もしない
+            // 1. 新しい画像ファイル(image)がある場合のみ、GCSにアップロード
             if (image) {
-                formData.append("image", image);
+                // 1-1. アップロードURLと最終的な画像URLを取得 (api.tsxに追加した関数)
+                const { uploadUrl, imageUrl } = await api.getGcsUploadUrl(image.name,user.id,image.type);
+
+                await axios.put(uploadUrl, image, {
+                    headers: {
+                        'Content-Type': image.type,
+                    },
+                    transformRequest: [(data) => data],
+                });
+
+                finalImageUrl = imageUrl; // GCSに保存された最終的なURLを更新
             }
 
-            // テキストメタデータ
-            formData.append("category_id", categoryId.toString());
-            formData.append("condition", condition);
-            formData.append("shipping_payer", shippingPayer);
-            formData.append("shipping_fee", shippingFee.toString());
-            formData.append("status", isDraft ? "DRAFT" : "ON_SALE");
+            // 画像が未選択なのにexistingImageURLもない場合はエラー (上のチェックで弾かれるはずだが念のため)
+            if (!finalImageUrl) {
+                throw new Error("画像URLが確定できませんでした。");
+            }
+
+            // 2. 商品データJSONの構築 (FormDataの代わり)
+            const itemData: api.ItemData = {
+                title: title,
+                description: description,
+                price: price.toString(),
+                seller_id: user.id.toString(),
+                image_url: finalImageUrl, // 👈 GCSのURLを渡す
+                category_id: categoryId.toString(),
+                condition: condition,
+                shipping_payer: shippingPayer,
+                shipping_fee: shippingFee.toString(),
+                status: isDraft ? "DRAFT" : "ON_SALE",
+            };
 
 
-            // 2. APIの呼び出し（PUT または POST）
+            // 3. APIの呼び出し（PUT または POST）
             if (isEditMode && editingItemId) {
-                // 編集モード: PUT を使用
-                // PUTでは application/jsonで送るのがREST fullですが、画像を含むためmultipart/form-dataで送ります。
-                await api.updateItem(editingItemId, formData); // 💡 PUT APIを使用
+                // 編集モード: PUT を使用 (JSONを受け付けるように修正したapi.updateItemを使用)
+                await api.updateItem(editingItemId, itemData);
             } else {
-                // 新規作成または新規下書き: POST を使用
-                await api.createItem(formData);
+                // 新規作成または新規下書き: POST を使用 (JSONを受け付けるように修正したapi.createItemを使用)
+                await api.createItem(itemData);
             }
 
             alert(isDraft ? "下書きを保存しました！" : "出品を完了しました！");
@@ -257,7 +273,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
         } finally {
             setIsSaving(false);
         }
-    }, [title, description, price, image, categoryId, condition, shippingPayer, shippingFee, user, isEditMode, editingItemId]);
+    }, [title, description, price, image,existingImageURL, categoryId, condition, shippingPayer, shippingFee, user, isEditMode, editingItemId]);
     // 出品機能 (handleSubmit)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -280,157 +296,169 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
     }
 
     return (
-        <Box sx={{ maxWidth: 600, mx: 'auto', p: 3 }}>
-            <Typography variant="h5" component="h2" gutterBottom>
-                {isEditMode ? `商品を編集 #${editingItemId}` : '新規出品する'}
+        <Box sx={{ maxWidth: 800, mx: 'auto', p: 3, pb: 10 }}>
+            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 800, mb: 4, textAlign: 'center' }}>
+                {isEditMode ? `商品を編集 #${editingItemId}` : '商品の出品'}
             </Typography>
-            <form onSubmit={handleSubmit} >
 
-                {/* 画像選択エリア */}
-                {(existingImageURL || image) && (
-                    <Box sx={{mb: 2, display: 'flex', gap: 2, alignItems: 'center'}}>
-                        <img src={image ? URL.createObjectURL(image) : existingImageURL!} alt="既存画像" style={{maxWidth: 100, maxHeight: 100, objectFit: 'cover'}}/>
-                        <Typography variant="caption">画像を変更する場合は再度選択</Typography>
+            <form onSubmit={handleSubmit}>
+                <Paper elevation={0} sx={{ p: { xs: 2, md: 4 }, border: '1px solid #eee', borderRadius: '8px' }}>
+
+                    {/* 画像セクション */}
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>出品画像</Typography>
+                    <Box sx={{ mb: 4 }}>
+                        {(existingImageURL || image) && (
+                            <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                                <Box sx={{ position: 'relative', width: 100, height: 100 }}>
+                                    <img
+                                        src={image ? URL.createObjectURL(image) : existingImageURL!}
+                                        alt="商品画像"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
+                                    />
+                                </Box>
+                                <Typography variant="caption" color="text.secondary">画像を変更する場合は再度選択してください</Typography>
+                            </Box>
+                        )}
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            <input type="file" accept="image/*" onChange={handleImageChange} id="file-input" style={{ display: 'none' }} />
+                            <label htmlFor="file-input" style={{ flexGrow: 1 }}>
+                                <Button component="span" variant="outlined" startIcon={<ImageSearchIcon />} fullWidth sx={{ py: 1.5, borderColor: '#eee', color: '#1a1a1a' }}>
+                                    {image ? image.name : "画像を選択"}
+                                </Button>
+                            </label>
+                            <Button
+                                variant="contained"
+                                color="secondary"
+                                onClick={handleAIAnalyze}
+                                disabled={!image || isAnalyzing}
+                                sx={{ whiteSpace: 'nowrap', px: 3 }}
+                            >
+                                {isAnalyzing ? "解析中..." : "✨ AI自動入力"}
+                            </Button>
+                        </Box>
                     </Box>
-                )}
 
-                <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        id="file-input"
-                        style={{ display: 'none' }}
-                    />
-                    <label htmlFor="file-input" style={{ flexGrow: 1, marginRight: '16px' }}>
-                        <Button component="span" variant="outlined" startIcon={<ImageSearchIcon />} fullWidth>
-                            {image ? image.name : "商品画像を選択"}
-                        </Button>
-                    </label>
+                    <Divider sx={{ my: 4 }} />
 
-                    {/* AI解析ボタン */}
-                    <Button
-                        variant="contained"
-                        color="secondary"
-                        onClick={handleAIAnalyze}
-                        disabled={!image || isAnalyzing}
-                        sx={{ whiteSpace: 'nowrap' }}
-                    >
-                        {isAnalyzing ? "解析中..." : "✨ AI自動入力"}
-                    </Button>
-                </Box>
+                    {/* 商品名・説明セクション */}
+                    <Box sx={{ mb: 4 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>商品名</Typography>
+                        <TextField
+                            fullWidth
+                            placeholder="商品名（40文字以内）"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            required
+                            variant="outlined"
+                            sx={{ mb: 3 }}
+                        />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>商品の説明</Typography>
+                        <TextField
+                            fullWidth
+                            multiline
+                            rows={6}
+                            placeholder="商品の状態、色、素材、重さ、定価、注意点など"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            required
+                        />
+                    </Box>
 
-                {/* 商品名 */}
-                <TextField
-                    label="商品名" fullWidth margin="normal" value={title} onChange={(e) => setTitle(e.target.value)} required
-                />
+                    <Divider sx={{ my: 4 }} />
 
-                {/* ▼▼▼ カテゴリ選択 (2段階) ▼▼▼ */}
-                <FormControl fullWidth margin="normal" required>
-                    <InputLabel>大カテゴリ</InputLabel>
-                    <Select
-                        value={parentCategory || ''}
-                        label="大カテゴリ"
-                        onChange={(e) => {
-                            setParentCategory(Number(e.target.value));
-                            setCategoryId(0); // 子カテゴリIDをリセット
-                        }}
-                    >
-                        {categoryTree.map((cat) => (
-                            <MenuItem key={cat.id} value={cat.id}>{cat.name}</MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+                    {/* 詳細設定セクション */}
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, fontSize: '1rem' }}>商品の詳細</Typography>
+                    <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, mb: 4 }}>
+                        <FormControl fullWidth required variant="standard">
+                            <InputLabel>大カテゴリー</InputLabel>
+                            <Select
+                                value={parentCategory || ''}
+                                onChange={(e) => {
+                                    setParentCategory(Number(e.target.value));
+                                    setCategoryId(0);
+                                }}
+                            >
+                                {categoryTree.map((cat) => (
+                                    <MenuItem key={cat.id} value={cat.id}>{cat.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
 
-                {parentCategory && (
-                    <FormControl fullWidth margin="normal" required disabled={subCategories.length === 0}>
-                        <InputLabel>中カテゴリ</InputLabel>
-                        <Select
-                            value={categoryId || ''}
-                            label="中カテゴリ"
-                            onChange={(e) => setCategoryId(Number(e.target.value))}
+                        {parentCategory && (
+                            <FormControl fullWidth required variant="standard" disabled={subCategories.length === 0}>
+                                <InputLabel>中カテゴリー</InputLabel>
+                                <Select value={categoryId || ''} onChange={(e) => setCategoryId(Number(e.target.value))}>
+                                    {subCategories.map((cat) => (
+                                        <MenuItem key={cat.id} value={cat.id}>
+                                            {cat.name.replace('レディース ', '').replace('メンズ ', '')}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        )}
+
+                        <FormControl fullWidth required variant="standard">
+                            <InputLabel>商品の状態</InputLabel>
+                            <Select value={condition} onChange={(e) => setCondition(e.target.value as string)}>
+                                {conditionsList.map((cond) => (
+                                    <MenuItem key={cond.id} value={cond.name}>{cond.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Box>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* 配送・価格セクション */}
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, fontSize: '1rem' }}>配送・価格</Typography>
+                    <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, mb: 4 }}>
+                        <FormControl fullWidth required variant="standard">
+                            <InputLabel>配送料の負担</InputLabel>
+                            <Select value={shippingPayer} onChange={(e) => setShippingPayer(e.target.value as 'seller' | 'buyer')}>
+                                <MenuItem value="seller">送料込み（出品者負担）</MenuItem>
+                                <MenuItem value="buyer">着払い（購入者負担）</MenuItem>
+                            </Select>
+                        </FormControl>
+                        <TextField
+                            label="送料"
+                            type="number"
+                            variant="standard"
+                            value={shippingFee}
+                            onChange={(e) => setShippingFee(Number(e.target.value))}
+                            required
+                        />
+                        <TextField
+                            label="販売価格 (¥)"
+                            type="number"
+                            fullWidth
+                            variant="standard"
+                            value={price}
+                            onChange={(e) => setPrice(e.target.value)}
+                            required
+                            sx={{ gridColumn: { md: 'span 2' } }}
+                        />
+                    </Box>
+
+                    {/* ボタン群 */}
+                    <Box sx={{ mt: 6, display: 'flex', gap: 2 }}>
+                        <Button
+                            variant="outlined"
+                            onClick={handleDraftSave}
+                            disabled={isSaving}
+                            sx={{ flex: 1, py: 2, borderColor: '#1a1a1a', color: '#1a1a1a', fontWeight: 'bold' }}
                         >
-                            {/* 💡 修正: カテゴリ名から親カテゴリ名を削除して表示 */}
-                            {subCategories.map((cat) => (
-                                <MenuItem key={cat.id} value={cat.id}>
-                                    {cat.name.replace('レディース ', '').replace('メンズ ', '')}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                )}
-
-
-                {/* ▼▼▼ 商品状態 ▼▼▼ */}
-                <FormControl fullWidth margin="normal" required>
-                    <InputLabel>商品の状態</InputLabel>
-                    <Select
-                        value={condition}
-                        label="商品の状態"
-                        onChange={(e) => setCondition(e.target.value as string)}
-                    >
-                        {conditionsList.map((cond) => (
-                            <MenuItem key={cond.id} value={cond.name}>{cond.name}</MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-
-                {/* ... 配送料の負担 & 送料 ... */}
-                <FormControl fullWidth margin="normal" required>
-                    <InputLabel>配送料の負担</InputLabel>
-                    <Select
-                        value={shippingPayer}
-                        label="配送料の負担"
-                        onChange={(e) => setShippingPayer(e.target.value as 'seller' | 'buyer')}
-                    >
-                        <MenuItem value="seller">送料込み（出品者負担）</MenuItem>
-                        <MenuItem value="buyer">着払い（購入者負担）</MenuItem>
-                    </Select>
-                </FormControl>
-
-                <TextField
-                    label={shippingPayer === 'seller' ? '送料 (0円で込み)' : '送料 (着払い、必須1円以上)'}
-                    type="number"
-                    fullWidth
-                    margin="normal"
-                    value={shippingFee}
-                    onChange={(e) => setShippingFee(Number(e.target.value))}
-                    required
-                    InputProps={{ inputProps: { min: shippingPayer === 'buyer' ? 1 : 0 } }} // inputPropsの代わりにslotPropsを使用
-                    helperText={shippingPayer === 'seller' ? '商品価格に含まれる想定の送料を入力' : '着払いのため、最低1円を入力してください'}
-                />
-
-                {/* 説明文 */}
-                <TextField
-                    label="説明文" variant="outlined" multiline minRows={4} fullWidth margin="normal" value={description} onChange={(e) => setDescription(e.target.value)} required
-                />
-
-                {/* 価格 */}
-                <TextField
-                    label="価格 (円)" type="number" fullWidth margin="normal" value={price} onChange={(e) => setPrice(e.target.value)} required
-                />
-
-                {/* 出品ボタン群 */}
-                <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
-                    <Button
-                        variant="outlined"
-                        color="primary"
-                        sx={{ flex: 1 }}
-                        onClick={handleDraftSave}
-                        disabled={isSaving}
-                    >
-                        下書き保存
-                    </Button>
-                    <Button
-                        type="submit" // フォームのsubmitとして機能
-                        variant="contained"
-                        color="primary"
-                        sx={{ flex: 2 }}
-                        disabled={isSaving}
-                    >
-                        {isSaving ? <CircularProgress size={24} color="inherit" /> : (isEditMode ? '変更を保存する' : '出品する')}
-                    </Button>
-                </Box>
+                            下書き保存
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            disabled={isSaving}
+                            sx={{ flex: 2, py: 2, bgcolor: '#e91e63', fontWeight: 'bold', '&:hover': { bgcolor: '#c2185b' } }}
+                        >
+                            {isSaving ? <CircularProgress size={24} color="inherit" /> : (isEditMode ? '変更を保存する' : '出品する')}
+                        </Button>
+                    </Box>
+                </Paper>
             </form>
         </Box>
     );

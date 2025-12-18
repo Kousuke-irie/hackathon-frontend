@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import { Box, Typography, Card, CardContent, CardMedia, Chip } from '@mui/material';
+import { Box, Typography, Chip } from '@mui/material';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 // PurchaseHistory.tsx からヘルパー関数をインポートすることを想定
 import { getStatusChipProps } from '../utils/transaction-helpers.tsx'
 
@@ -41,61 +42,54 @@ export const InProgressPurchases = ({ user, onItemClick }: InProgressPurchasesPr
     }
 
     return (
-        <Box sx={{ mt: 3 }}>
-            <Typography variant="h5" gutterBottom>取引中の商品</Typography>
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 2,
-                    // 画面サイズに基づいたレスポンシブな列定義
-                    gridTemplateColumns: {
-                        xs: '1fr', // 1列
-                        sm: '1fr 1fr', // 2列
-                        md: '1fr 1fr 1fr', // 3列
-                        lg: '1fr 1fr 1fr 1fr', // 4列
-                    },
-                    justifyContent: 'flex-start'
-                }}
-            >
+        <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>
+                取引中の商品
+            </Typography>
+
+            <Box sx={{ display: 'grid', gap: 2 }}>
                 {transactions.map((tx) => (
                     <Box
                         key={tx.id}
                         onClick={() => onItemClick(tx.item.id)}
                         sx={{
+                            display: 'flex',
+                            p: 2,
+                            border: '1px solid #eee',
+                            borderRadius: '12px',
                             cursor: 'pointer',
-                            borderRadius: '8px',
-                            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-                            overflow: 'hidden',
-                            '&:hover': { boxShadow: 3 }
+                            transition: 'all 0.2s',
+                            '&:hover': { bgcolor: '#fafafa', borderColor: '#1a1a1a' }
                         }}
                     >
-                        <Card sx={{ display: 'flex', height: 100, '&:hover': { boxShadow: 3 } }}>
-                            <CardMedia
-                                component="img"
-                                sx={{ width: 100, objectFit: 'cover' }}
-                                image={tx.item.image_url}
-                                alt={tx.item.title}
-                            />
-                            <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                                <CardContent sx={{ flex: '1 0 auto', p: 1, '&:last-child': { pb: 1 } }}>
-                                    <Typography component="div" variant="subtitle2" noWrap>
-                                        {tx.item.title}
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" component="div">
-                                        ¥{tx.price_snapshot.toLocaleString()}
-                                    </Typography>
-                                    <Box sx={{ mt: 0.5 }}>
-                                        {/* PurchaseHistoryからインポートしたヘルパー関数を使用 */}
-                                        <Chip
-                                            label={getStatusChipProps(tx.Status).label}
-                                            size="small"
-                                            color={getStatusChipProps(tx.Status).color as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' | undefined}
-                                            variant="outlined"
-                                        />
-                                    </Box>
-                                </CardContent>
+                        <Box sx={{ width: 70, height: 70, borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+                            <img src={tx.item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </Box>
+                        <Box sx={{ flex: 1, ml: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }} noWrap>
+                                {tx.item.title}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                    ¥{tx.price_snapshot.toLocaleString()}
+                                </Typography>
+                                <Chip
+                                    label={getStatusChipProps(tx.Status).label}
+                                    size="small"
+                                    variant="filled"
+                                    sx={{
+                                        height: 20,
+                                        fontSize: '0.65rem',
+                                        fontWeight: 'bold',
+                                        bgcolor: '#1a1a1a', // モノトーンに変更
+                                        color: '#fff'
+                                    }}
+                                />
                             </Box>
-                        </Card>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                            <ArrowForwardIosIcon sx={{ fontSize: '0.8rem', color: '#ccc' }} />
+                        </Box>
                     </Box>
                 ))}
             </Box>
