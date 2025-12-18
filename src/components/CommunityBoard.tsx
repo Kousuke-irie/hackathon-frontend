@@ -144,7 +144,7 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
                     open={Boolean(settingsAnchorEl)}
                     onClose={() => setSettingsAnchorEl(null)}
                 >
-                    <MenuItem onClick={() => { setEditModalOpen(true); setSettingsAnchorEl(null); }}>
+                    <MenuItem onClick={() => { setSettingsAnchorEl(null); setEditModalOpen(true); }}>
                         <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
                         設定を変更
                     </MenuItem>
@@ -238,6 +238,7 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
                 <DialogTitle sx={{ fontWeight: 800 }}>コミュニティ設定の変更</DialogTitle>
                 <Box sx={{ p: 3, display: 'grid', gap: 3 }}>
                     <TextField
+                        autoFocus
                         label="名前"
                         fullWidth
                         value={editInfo.name}
