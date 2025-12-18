@@ -316,6 +316,12 @@ export const fetchInProgressPurchases = async (userId: number): Promise<Transact
     return response.data.transactions;
 };
 
+/** 特定の取引詳細を取得 */
+export const fetchTransactionDetail = async (txId: number): Promise<Transaction> => {
+    const response = await client.get(`/transactions/${txId}`);
+    return response.data.transaction;
+};
+
 // ------------------------------------
 // コメント
 // ------------------------------------

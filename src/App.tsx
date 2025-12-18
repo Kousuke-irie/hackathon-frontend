@@ -24,6 +24,7 @@ import { InProgressPurchases} from "./components/InProgressPurchases";
 import { NotFound} from "./components/NotFound";
 import {MyPageLayout} from "./components/MyPageLayout.tsx";
 import {NotificationsPage} from "./components/NotificationsPage.tsx";
+import {TransactionScreen} from "./components/TransactionScreen.tsx";
 
 import type { User } from './types/user';
 
@@ -229,6 +230,7 @@ function AppContent() {
                                 <Route path="/communities" element={<CommunityList onSelectCommunity={(id) => navigate(`/communities/${id}`)} currentUser={user} />}/>
                                 <Route path="/communities/:id" element={<CommunityWrapper user={user}/>}/>
                                 <Route path="/notifications" element={<NotificationsPage user={user} />} />
+                                <Route path="/transactions/:txId" element={<TransactionScreen currentUser={user!} />} />
                             </>
                         ) : (
                             <Route path="*" element={<Navigate to="/" replace />} />

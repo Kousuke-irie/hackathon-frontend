@@ -1,52 +1,148 @@
 import { useState, useEffect } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import { Box, Tabs, Tab, Grid, Card, CardMedia, CardContent, Typography } from '@mui/material';
-import { useNavigate } from "react-router-dom";
+import { Box, Tabs, Tab, Card, CardMedia, CardContent, Typography } from '@mui/material';
 
-export const MyItems = ({ user }: { user: User }) => {
+interface MyItemsProps {
+    user: User;
+    onItemClick: (id: number) => void;
+}
+
+export const MyItems = ({ user, onItemClick }: MyItemsProps) => {
     const [items, setItems] = useState<api.Item[]>([]);
+    const [transactions, setTransactions] = useState<api.Transaction[]>([]);
     const [tabValue, setTabValue] = useState(0); // 0: 出品中, 1: 取引中, 2: 売却済み
-    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         (async () => {
-            const res = await api.fetchMyItems(user.id);
-            setItems(res);
+            setLoading(true);
+            try {
+                if (tabValue === 0) {
+                    // 「出品中」: 自分の出品した ON_SALE 商品を取得
+                    const res = await api.fetchMyItems(user.id);
+                    setItems(res.filter(i => i.status === 'ON_SALE'));
+                    setTransactions([]);
+                } else if (tabValue === 1) {
+                    // 「取引中」: 自分が関わる進行中の取引を取得
+                    // ※本来は「販売した進行中取引」専用APIが理想ですが、既存の進行中APIを活用
+                    const res = await api.fetchInProgressPurchases(user.id);
+                    setTransactions(res);
+                    setItems([]);
+                } else if (tabValue === 2) {
+                    // 「売却済み」: 完了した取引履歴を取得
+                    const res = await api.fetchPurchaseHistory(user.id);
+                    // 完了または受け取り済みのみフィルタリング（必要に応じて）
+                    setTransactions(res.filter(tx => tx.Status === 'COMPLETED' || tx.Status === 'RECEIVED'));
+                    setItems([]);
+                }
+            } catch (error) {
+                console.error("Failed to fetch my items/transactions:", error);
+            } finally {
+                setLoading(false);
+            }
         })();
-    }, [user.id]);
-
-    const filteredItems = items.filter(item => {
-        if (tabValue === 0) return item.status === 'ON_SALE';
-        if (tabValue === 1) return item.status === 'SOLD'; // 本来はTransactionの状態を見るべきですが簡易的に
-        return item.status === 'SOLD';
-    });
+    }, [user.id, tabValue]);
 
     return (
         <Box sx={{ width: '100%' }}>
-            <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} centered sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+            {/* タブメニュー */}
+            <Tabs
+                value={tabValue}
+                onChange={(_, v) => setTabValue(v)}
+                centered
+                sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}
+            >
                 <Tab label="出品中" />
                 <Tab label="取引中" />
                 <Tab label="売却済み" />
             </Tabs>
 
-            <Grid container spacing={2}>
-                {filteredItems.map((item) => (
-                    <Grid item xs={6} sm={4} key={item.id}>
-                        <Card onClick={() => {
-                            // 出品中なら詳細、それ以外なら取引画面へ（txIdの取得ロジックが必要）
-                            if (tabValue === 0) navigate(`/items/${item.id}`);
-                            else alert("取引画面へ遷移します");
-                        }} sx={{ cursor: 'pointer' }}>
-                            <CardMedia component="img" height="140" image={item.image_url} />
-                            <CardContent>
-                                <Typography variant="subtitle2" noWrap>{item.title}</Typography>
-                                <Typography variant="body2" color="primary">¥{item.price.toLocaleString()}</Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                ))}
-            </Grid>
+            {loading ? (
+                <Typography align="center" sx={{ mt: 4 }}>読み込み中...</Typography>
+            ) : (
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gap: 2,
+                        gridTemplateColumns: {
+                            xs: '1fr 1fr',
+                            sm: '1fr 1fr 1fr',
+                        }
+                    }}
+                >
+                    {/* 出品中タブの場合: api.Item を表示 */}
+                    {tabValue === 0 && items.map((item) => (
+                        <Box key={item.id}>
+                            <Card
+                                onClick={() => onItemClick(item.id)} // 商品詳細画面へ
+                                sx={{
+                                    cursor: 'pointer',
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    '&:hover': { boxShadow: 2 }
+                                }}
+                            >
+                                <CardMedia
+                                    component="img"
+                                    height="140"
+                                    image={item.image_url}
+                                    sx={{ objectFit: 'cover' }}
+                                />
+                                <CardContent sx={{ p: 1.5, flexGrow: 1 }}>
+                                    <Typography variant="subtitle2" noWrap sx={{ fontWeight: 'bold' }}>
+                                        {item.title}
+                                    </Typography>
+                                    <Typography variant="body2" color="primary" sx={{ fontWeight: 'bold' }}>
+                                        ¥{item.price.toLocaleString()}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Box>
+                    ))}
+
+                    {/* 取引中・売却済みタブの場合: api.Transaction を表示 */}
+                    {tabValue !== 0 && transactions.map((tx) => (
+                        <Box key={tx.id}>
+                            <Card
+                                onClick={() => onItemClick(tx.id)} // 取引画面 (TransactionScreen) へ
+                                sx={{
+                                    cursor: 'pointer',
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    '&:hover': { boxShadow: 2 }
+                                }}
+                            >
+                                <CardMedia
+                                    component="img"
+                                    height="140"
+                                    image={tx.item.image_url}
+                                    sx={{ objectFit: 'cover' }}
+                                />
+                                <CardContent sx={{ p: 1.5, flexGrow: 1 }}>
+                                    <Typography variant="subtitle2" noWrap sx={{ fontWeight: 'bold' }}>
+                                        {tx.item.title}
+                                    </Typography>
+                                    <Typography variant="body2" color="primary" sx={{ fontWeight: 'bold' }}>
+                                        ¥{tx.price_snapshot.toLocaleString()}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        状態: {tx.Status}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Box>
+                    ))}
+                </Box>
+            )}
+
+            {!loading && (tabValue === 0 ? items.length === 0 : transactions.length === 0) && (
+                <Typography align="center" color="text.secondary" sx={{ mt: 4 }}>
+                    表示できる商品や取引はありません
+                </Typography>
+            )}
         </Box>
     );
 };
