@@ -226,7 +226,7 @@ function AppContent() {
                                 <Route path="/sell" element={<SellItemWrapper user={user} />}/>
                                 <Route path="/sell/edit/:id" element={<SellItemWrapper user={user} />}/>
                                 <Route path="/swipe" element={<SwipeDeck user={user!} />}/>
-                                <Route path="/communities" element={<CommunityList onSelectCommunity={(id) => navigate(`/communities/${id}`)} />}/>
+                                <Route path="/communities" element={<CommunityList onSelectCommunity={(id) => navigate(`/communities/${id}`)} currentUser={user} />}/>
                                 <Route path="/communities/:id" element={<CommunityWrapper user={user}/>}/>
                                 <Route path="/notifications" element={<NotificationsPage user={user} />} />
                             </>

@@ -13,6 +13,8 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import type { User } from "../types/user";
 import logoImg from "../assets/logo.png";
 import {useNotifications} from "../hooks/useNotifications.tsx";
+import ExploreIcon from '@mui/icons-material/Explore';
+import ForumIcon from '@mui/icons-material/Forum';
 
 interface NavbarProps {
     currentUser: User | null;
@@ -173,6 +175,35 @@ export const Navbar = ({ currentUser, onLogin, onLogout }: NavbarProps) => {
                                         ログアウト
                                     </MenuItem>
                                 </Menu>
+                                {/* Discover (スワイプ) - 枠線付きボタンで強調 */}
+                                <Button
+                                    variant="outlined"
+                                    color="primary"
+                                    startIcon={<ExploreIcon />}
+                                    onClick={() => navigate('/swipe')}
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        borderRadius: '20px', // 丸みをつけて差別化
+                                        display: { xs: 'none', sm: 'flex' }
+                                    }}
+                                >
+                                    Discover
+                                </Button>
+
+                                {/* コミュニティ (界隈) - 枠線付きボタンで強調 */}
+                                <Button
+                                    variant="outlined"
+                                    color="primary"
+                                    startIcon={<ForumIcon />}
+                                    onClick={() => navigate('/communities')}
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        borderRadius: '20px',
+                                        display: { xs: 'none', sm: 'flex' }
+                                    }}
+                                >
+                                    コミュニティ
+                                </Button>
 
                                 <Button
                                     variant="contained"

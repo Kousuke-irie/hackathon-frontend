@@ -56,7 +56,8 @@ export const RecentItemsDisplay = ({ onItemClick }: RecentItemsDisplayProps) => 
                         key={item.id}
                         onClick={() => onItemClick(item.id)}
                         sx={{
-                            minWidth: 140,
+                            minWidth: 120,
+                            maxWidth: 150,
                             cursor: 'pointer',
                             transition: 'transform 0.2s',
                             '&:hover': { transform: 'translateY(-4px)' } // 軽い浮遊エフェクト
@@ -65,7 +66,7 @@ export const RecentItemsDisplay = ({ onItemClick }: RecentItemsDisplayProps) => 
                         <Box sx={{
                             width: '100%',
                             aspectRatio: '1/1',
-                            borderRadius: '4px',
+                            borderRadius: '8px',
                             overflow: 'hidden',
                             bgcolor: '#f5f5f5',
                             mb: 1

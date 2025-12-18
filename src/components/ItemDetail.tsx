@@ -3,6 +3,7 @@ import * as api from "../services/api";
 import type { User } from "../types/user";
 import { addRecentView } from '../services/recent-views';
 import { RecentItemsDisplay } from "./RecentItemsDisplay";
+import {useNavigate} from "react-router-dom";
 
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js"
@@ -10,8 +11,10 @@ import { PaymentModal } from "./PaymentModal";
 import { CommentSection } from "./CommentSection";
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
-// ★ Chip を削除し、Grid のエラーを解消するため Grid をインポート
-import { IconButton, Box, Typography, Button, Grid, Avatar, Divider } from "@mui/material";
+import ShareIcon from '@mui/icons-material/Share';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import GroupsIcon from '@mui/icons-material/Groups';
+import { IconButton, Box, Typography, Button, Grid, Avatar, Divider , Menu, MenuItem, ListItemIcon, Dialog, DialogTitle, List, ListItem, ListItemText, ListItemButton} from "@mui/material";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
@@ -44,6 +47,12 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [isLiked, setIsLiked] = useState(false);
+    const navigate = useNavigate();
+
+    const [communities, setCommunities] = useState<api.Community[]>([]);
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [shareModalOpen, setShareModalOpen] = useState(false);
+
 
     useEffect(() => {
         (async () => {
@@ -56,13 +65,17 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
                     const likedStatus = await api.checkItemLiked(currentUser.id, itemId);
                     setIsLiked(likedStatus.is_liked);
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to fetch item detail:", error);
+                if (error.response?.status === 404) {
+                    alert("この商品は削除されたか、存在しません。");
+                    navigate('/');
+                }
             } finally {
                 setLoading(false);
             }
         })();
-    }, [itemId, currentUser]);
+    }, [itemId, currentUser, navigate]);
 
     const handlePurchaseClick = async () => {
         if (!item) return;
@@ -91,7 +104,42 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
         setShowPaymentModal(false);
         setItem(prev => prev ? ({ ...prev, status: 'SOLD' }) : null);
         alert("購入が完了しました！");
-        window.location.href = '/purchase-in-progress';
+        navigate('/mypage');
+    };
+
+    const handleOpenShareMenu = async (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleOpenCommunityDialog = async () => {
+        setAnchorEl(null); // メニューを閉じる
+        try {
+            const res = await api.fetchCommunities();
+            setCommunities(res);
+            setShareModalOpen(true);
+        } catch (error) {
+            console.error("Failed to fetch communities:", error);
+        }
+    };
+
+    const handleCopyUrl = () => {
+        (async () => {
+            await navigator.clipboard.writeText(window.location.href);
+        })();
+        alert("URLをコピーしました！");
+        setAnchorEl(null);
+    };
+
+    const handleShareToCommunity = async (communityId: number) => {
+        if (!currentUser) return;
+        try {
+            await api.postCommunityPost(communityId, currentUser.id, "この商品が気になります！", itemId);
+            alert("コミュニティに共有しました");
+            setShareModalOpen(false);
+        } catch (error) {
+            console.error(error);
+            alert("共有に失敗しました");
+        }
     };
 
     if (loading) return <Box sx={{ p: 5, textAlign: 'center' }}>Loading...</Box>;
@@ -107,7 +155,6 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
             </Button>
 
             <Grid container spacing={4}>
-                {/* ★ item プロパティを削除 */}
                 <Grid size={{ xs: 12, md: 6 }}>
                     <Box sx={{
                         width: "100%",
@@ -141,18 +188,39 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
                     </Box>
                 </Grid>
 
-                {/* ★ item プロパティを削除 */}
                 <Grid size={{ xs: 12, md: 6 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
                             {item.title}
                         </Typography>
-                        {currentUser && !isMyItem && (
-                            <IconButton onClick={handleToggleLike} color={isLiked ? 'secondary' : 'default'}>
-                                {isLiked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                        <Box sx={{ display: 'flex' }}>
+                            {/* 💡 共有ボタンをタイトルの横に配置 */}
+                            <IconButton onClick={handleOpenShareMenu}>
+                                <ShareIcon />
                             </IconButton>
-                        )}
+                            {currentUser && !isMyItem && (
+                                <IconButton onClick={handleToggleLike} color={isLiked ? 'secondary' : 'default'}>
+                                    {isLiked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                                </IconButton>
+                            )}
+                        </Box>
                     </Box>
+
+                    {/* 💡 共有メニュー (ドロップダウン) */}
+                    <Menu
+                        anchorEl={anchorEl}
+                        open={Boolean(anchorEl)}
+                        onClose={() => setAnchorEl(null)}
+                    >
+                        <MenuItem onClick={handleCopyUrl}>
+                            <ListItemIcon><ContentCopyIcon fontSize="small" /></ListItemIcon>
+                            URLを取得
+                        </MenuItem>
+                        <MenuItem onClick={handleOpenCommunityDialog}>
+                            <ListItemIcon><GroupsIcon fontSize="small" /></ListItemIcon>
+                            コミュニティに共有
+                        </MenuItem>
+                    </Menu>
 
                     <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
                         ¥{item.price.toLocaleString()}
@@ -227,6 +295,20 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
                     />
                 </Elements>
             )}
+
+            {/* 💡 共有ダイアログ */}
+            <Dialog open={shareModalOpen} onClose={() => setShareModalOpen(false)}>
+                <DialogTitle sx={{ fontWeight: 800 }}>共有先のコミュニティを選択</DialogTitle>
+                <List sx={{ pt: 0 }}>
+                    {communities.map((c) => (
+                        <ListItem key={c.id} disablePadding>
+                            <ListItemButton onClick={() => handleShareToCommunity(c.id)}>
+                                <ListItemText primary={c.name} />
+                            </ListItemButton>
+                        </ListItem>
+                    ))}
+                </List>
+            </Dialog>
         </Box>
     );
 };
