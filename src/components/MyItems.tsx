@@ -1,77 +1,52 @@
 import { useState, useEffect } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
+import { Box, Tabs, Tab, Grid, Card, CardMedia, CardContent, Typography } from '@mui/material';
+import { useNavigate } from "react-router-dom";
 
-interface Item {
-    id: number;
-    title: string;
-    price: number;
-    image_url: string;
-    status: string;
-}
-
-interface MyItemsProps {
-    user: User;
-    onItemClick: (id: number) => void;
-}
-
-export const MyItems = ({ user, onItemClick }: MyItemsProps) => {
-    const [items, setItems] = useState<Item[]>([]);
-    const [loading, setLoading] = useState(true);
+export const MyItems = ({ user }: { user: User }) => {
+    const [items, setItems] = useState<api.Item[]>([]);
+    const [tabValue, setTabValue] = useState(0); // 0: 出品中, 1: 取引中, 2: 売却済み
+    const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchMyItems = async () => {
-            setLoading(true);
-            try {
-                // X-User-ID ヘッダーを使ってAPIを呼び出す
-                const res = await api.fetchMyItems(user.id);
-                setItems(res);
-            } catch (error) {
-                console.error("Failed to fetch my items:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchMyItems();
-    }, [user]);
+        (async () => {
+            const res = await api.fetchMyItems(user.id);
+            setItems(res);
+        })();
+    }, [user.id]);
 
-    if (loading) return <div style={{ textAlign: "center", marginTop: "50px" }}>Loading...</div>;
-    if (items.length === 0) {
-        return <div style={{ textAlign: "center", marginTop: "50px" }}>出品している商品はありません。</div>;
-    }
+    const filteredItems = items.filter(item => {
+        if (tabValue === 0) return item.status === 'ON_SALE';
+        if (tabValue === 1) return item.status === 'SOLD'; // 本来はTransactionの状態を見るべきですが簡易的に
+        return item.status === 'SOLD';
+    });
 
     return (
-        <div style={{ padding: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
-            {items.map((item) => (
-                <div
-                    key={item.id}
-                    onClick={() => onItemClick(item.id)}
-                    style={{
-                        border: "1px solid #ccc",
-                        borderRadius: "8px",
-                        overflow: "hidden",
-                        cursor: "pointer",
-                        opacity: item.status === "SOLD" ? 0.5 : 1
-                    }}
-                >
-                    {item.status === "SOLD" && (
-                        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", color: "red", fontWeight: "bold", fontSize: "1.5rem" }}>SOLD</div>
-                    )}
-                    <img
-                        src={item.image_url}
-                        alt={item.title}
-                        style={{ width: "100%", height: "150px", objectFit: "cover" }}
-                    />
-                    <div style={{ padding: "8px" }}>
-                        <h4 style={{ margin: "0 0 5px 0", fontSize: "14px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
-                            {item.title}
-                        </h4>
-                        <p style={{ margin: 0, fontWeight: "bold", color: "#4CAF50" }}>
-                            ¥{item.price.toLocaleString()}
-                        </p>
-                    </div>
-                </div>
-            ))}
-        </div>
+        <Box sx={{ width: '100%' }}>
+            <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} centered sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                <Tab label="出品中" />
+                <Tab label="取引中" />
+                <Tab label="売却済み" />
+            </Tabs>
+
+            <Grid container spacing={2}>
+                {filteredItems.map((item) => (
+                    <Grid item xs={6} sm={4} key={item.id}>
+                        <Card onClick={() => {
+                            // 出品中なら詳細、それ以外なら取引画面へ（txIdの取得ロジックが必要）
+                            if (tabValue === 0) navigate(`/items/${item.id}`);
+                            else alert("取引画面へ遷移します");
+                        }} sx={{ cursor: 'pointer' }}>
+                            <CardMedia component="img" height="140" image={item.image_url} />
+                            <CardContent>
+                                <Typography variant="subtitle2" noWrap>{item.title}</Typography>
+                                <Typography variant="body2" color="primary">¥{item.price.toLocaleString()}</Typography>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                ))}
+            </Grid>
+        </Box>
     );
 };
