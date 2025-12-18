@@ -52,7 +52,6 @@ export const NotificationsPage = ({ user }: NotificationsPageProps) => {
     useEffect(() => {
         if (wsNotifications.length > 0) {
             const latest = wsNotifications[0];
-            // 重複追加を防ぐチェック（IDが既にリストにない場合のみ追加）
             setNotifications(prev => {
                 const exists = prev.some(n => n.id === latest.id);
                 if (exists) return prev;
