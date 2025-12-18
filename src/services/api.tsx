@@ -55,6 +55,7 @@ export interface Community {
     id: number;
     name: string;
     description: string;
+    image_url: string;
 }
 
 // 投稿の共通型

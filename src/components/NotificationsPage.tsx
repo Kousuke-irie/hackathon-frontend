@@ -101,8 +101,21 @@ export const NotificationsPage = ({ user }: NotificationsPageProps) => {
                                         '&:hover': { bgcolor: '#fafafa' }
                                     }}
                                     onClick={() => {
-                                        if (noti.related_id) {
-                                            navigate(`/items/${noti.related_id}`);
+                                        if (!noti.related_id) return;
+
+                                        // 💡 修正ポイント: 通知の種類によって遷移先を振り分ける
+                                        switch (noti.type) {
+                                            case 'COMMUNITY':
+                                                navigate(`/communities/${noti.related_id}`);
+                                                break;
+                                            case 'LIKE':
+                                            case 'COMMENT':
+                                            case 'SOLD':
+                                            case 'PURCHASED':
+                                                navigate(`/items/${noti.related_id}`);
+                                                break;
+                                            default:
+                                                console.log("Unknown notification type:", noti.type);
                                         }
                                     }}
                                 >

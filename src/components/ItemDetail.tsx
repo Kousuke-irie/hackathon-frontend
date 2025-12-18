@@ -65,13 +65,17 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
                     const likedStatus = await api.checkItemLiked(currentUser.id, itemId);
                     setIsLiked(likedStatus.is_liked);
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to fetch item detail:", error);
+                if (error.response?.status === 404) {
+                    alert("この商品は削除されたか、存在しません。");
+                    navigate('/');
+                }
             } finally {
                 setLoading(false);
             }
         })();
-    }, [itemId, currentUser]);
+    }, [itemId, currentUser, navigate]);
 
     const handlePurchaseClick = async () => {
         if (!item) return;
