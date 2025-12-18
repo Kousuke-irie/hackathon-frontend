@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import * as api from "../services/api";
-import {Box, Typography, Button, Avatar, Paper, InputBase} from "@mui/material";
+import {Box, Typography, Button, Avatar, Paper,TextField} from "@mui/material";
 
 interface Community {
     id: number;
@@ -27,7 +27,7 @@ interface CommunityListProps {
 
 export const CommunityList = ({ onSelectCommunity }: CommunityListProps) => {
     const [communities, setCommunities] = useState<Community[]>([]);
-    const [newCommName, setNewCommName] = useState("");
+    const [newComm, setNewComm] = useState({ name: '', description: '', imageUrl: '' });
 
     useEffect( () => {
         (async () => {
@@ -36,16 +36,17 @@ export const CommunityList = ({ onSelectCommunity }: CommunityListProps) => {
     }, []);
 
     const handleCreate = async () => {
-        if (!newCommName) return;
-        const description = "誰でも歓迎！";
-        const image_url = "https://placehold.jp/150x150.png"; // ダミー画像
+        if (!newComm.name) return;
         try {
-            await api.createCommunity({ name: newCommName , description, image_url})
-            setNewCommName("");
+            await api.createCommunity({
+                name: newComm.name,
+                description: newComm.description || "誰でも歓迎！",
+                image_url: newComm.imageUrl || "https://placehold.jp/150x150.png"
+            });
+            setNewComm({ name: '', description: '', imageUrl: '' }); // リセット
             await fetchCommunitiesData(setCommunities);
         } catch (error) {
             alert("作成失敗");
-            console.log(error);
         }
     };
 
@@ -55,26 +56,39 @@ export const CommunityList = ({ onSelectCommunity }: CommunityListProps) => {
 
             {/* 作成フォームセクション */}
             <Paper elevation={0} sx={{ p: 3, mb: 5, bgcolor: '#f9f9f9', borderRadius: '12px' }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>新しい界隈を作る</Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                    <InputBase
-                        value={newCommName}
-                        onChange={(e) => setNewCommName(e.target.value)}
-                        placeholder="コミュニティ名を入力..."
-                        sx={{
-                            flex: 1,
-                            bgcolor: '#fff',
-                            borderRadius: '8px',
-                            px: 2,
-                            py: 1,
-                            border: '1px solid #eee'
-                        }}
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>新しいコミュニティを作る</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                        label="コミュニティ名"
+                        variant="outlined"
+                        fullWidth
+                        size="small"
+                        value={newComm.name}
+                        onChange={(e) => setNewComm({...newComm, name: e.target.value})}
+                    />
+                    <TextField
+                        label="説明文"
+                        variant="outlined"
+                        fullWidth
+                        multiline
+                        rows={2}
+                        size="small"
+                        value={newComm.description}
+                        onChange={(e) => setNewComm({...newComm, description: e.target.value})}
+                    />
+                    <TextField
+                        label="アイコン画像URL"
+                        variant="outlined"
+                        fullWidth
+                        size="small"
+                        value={newComm.imageUrl}
+                        onChange={(e) => setNewComm({...newComm, imageUrl: e.target.value})}
                     />
                     <Button
                         onClick={handleCreate}
                         variant="contained"
-                        disabled={!newCommName}
-                        sx={{ borderRadius: '8px', px: 3, fontWeight: 'bold' }}
+                        disabled={!newComm.name.trim()}
+                        sx={{ borderRadius: '8px', fontWeight: 'bold', alignSelf: 'flex-end' }}
                     >
                         作成
                     </Button>

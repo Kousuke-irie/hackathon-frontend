@@ -89,7 +89,7 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
                 startIcon={<ArrowBackIosIcon />}
                 sx={{ mb: 3, color: 'text.secondary', fontSize: '0.8rem' }}
             >
-                界隈一覧に戻る
+                コミュニティ一覧に戻る
             </Button>
 
             {/* 投稿エリア: メルカリのコメント欄のような清潔感 */}
@@ -99,7 +99,7 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
                     minRows={2}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="この界隈にメッセージを投稿..."
+                    placeholder="このコミュニティにメッセージを投稿..."
                     fullWidth
                     sx={{ p: 1, fontSize: '0.95rem' }}
                 />
