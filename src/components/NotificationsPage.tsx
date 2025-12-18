@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, List, ListItem, ListItemAvatar, Avatar, ListItemText, Divider, Paper } from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemAvatar, Avatar, ListItemText, Divider, Paper, CircularProgress } from '@mui/material';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
 import CampaignIcon from '@mui/icons-material/Campaign';
+import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import { useNotifications } from '../hooks/useNotifications';
-import * as api from "../services/api"; // APIをインポート
+import * as api from "../services/api";
 import type { User } from '../types/user';
-import type { Notification } from '../types/notification'; // Notification型をインポート
+import type { Notification } from '../types/notification';
 import { useNavigate } from "react-router-dom";
 
 interface NotificationsPageProps {
@@ -16,21 +17,23 @@ interface NotificationsPageProps {
 export const NotificationsPage = ({ user }: NotificationsPageProps) => {
     const navigate = useNavigate();
 
-    // 1. 通知リストを管理するステートを追加 (TS2552, TS7006 の修正)
+    // 1. 通知リストを管理するステートを明示的に作成
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // WebSocket Hookから受信用の通知を取得
-    const { notifications: wsNotifications } = useNotifications({user});
+    // 2. WebSocket Hook を使用（unreadCount のリセットも可能）
+    const { notifications: wsNotifications, setUnreadCount } = useNotifications({ user });
 
-    // 2. 初期表示時に API から過去の通知を取得 (fetchNotifications の使用)
+    // 3. 初期表示時に過去の通知を API から取得
     useEffect(() => {
-        const loadNotifications = async () => {
+        const loadInitialNotifications = async () => {
             setLoading(true);
             try {
                 const data = await api.fetchNotifications(user.id);
-                // バックエンドのレスポンス形式に合わせて調整
+                // バックエンドのレスポンス { notifications: [...] } から配列を取り出す
                 setNotifications(data.notifications || []);
+                // 画面を開いたら未読数をリセット
+                setUnreadCount(0);
             } catch (error) {
                 console.error("Failed to fetch notifications:", error);
             } finally {
@@ -39,17 +42,22 @@ export const NotificationsPage = ({ user }: NotificationsPageProps) => {
         };
 
         if (user?.id) {
-            (async () => {
-                await loadNotifications();
+            ( async () => {
+                await loadInitialNotifications();
             })();
         }
-    }, [user.id]);
+    }, [user.id, setUnreadCount]);
 
-    // 3. WebSocket で新しい通知が来たらリストの先頭に追加
+    // 4. 重要：WebSocket で新しい通知が届くたびに、リストの先頭に追加する
     useEffect(() => {
         if (wsNotifications.length > 0) {
             const latest = wsNotifications[0];
-            setNotifications((prev: Notification[]) => [latest, ...prev]);
+            // 重複追加を防ぐチェック（IDが既にリストにない場合のみ追加）
+            setNotifications(prev => {
+                const exists = prev.some(n => n.id === latest.id);
+                if (exists) return prev;
+                return [latest, ...prev];
+            });
         }
     }, [wsNotifications]);
 
@@ -57,12 +65,19 @@ export const NotificationsPage = ({ user }: NotificationsPageProps) => {
         switch (type) {
             case 'LIKE': return <FavoriteIcon sx={{ color: '#e91e63' }} />;
             case 'COMMENT': return <ChatBubbleIcon sx={{ color: '#1a1a1a' }} />;
+            case 'SOLD':
+            case 'PURCHASED': return <ShoppingBagIcon sx={{ color: '#ff9800' }} />;
             default: return <CampaignIcon sx={{ color: '#00bcd4' }} />;
         }
     };
 
     if (loading) {
-        return <Box sx={{ p: 4, textAlign: 'center' }}>読み込み中...</Box>;
+        return (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+                <CircularProgress size={24} sx={{ mr: 1 }} />
+                読み込み中...
+            </Box>
+        );
     }
 
     return (
@@ -78,7 +93,7 @@ export const NotificationsPage = ({ user }: NotificationsPageProps) => {
                         </ListItem>
                     ) : (
                         notifications.map((noti, index) => (
-                            <Box key={noti.id}>
+                            <Box key={noti.id || index}>
                                 <ListItem
                                     sx={{
                                         py: 2,
@@ -88,7 +103,6 @@ export const NotificationsPage = ({ user }: NotificationsPageProps) => {
                                     }}
                                     onClick={() => {
                                         if (noti.related_id) {
-                                            // window.location.href を navigate に変更
                                             navigate(`/items/${noti.related_id}`);
                                         }
                                     }}
@@ -101,12 +115,11 @@ export const NotificationsPage = ({ user }: NotificationsPageProps) => {
                                     <ListItemText
                                         primary={noti.content}
                                         secondary={new Date(noti.created_at).toLocaleString()}
-                                        // 4. 非推奨警告 (TS6385) の修正: slotProps を使用
                                         slotProps={{
                                             primary: {
                                                 sx: {
                                                     fontSize: '0.95rem',
-                                                    fontWeight: noti.is_read ? 500 : 700
+                                                    fontWeight: noti.is_read ? 500 : 800
                                                 }
                                             }
                                         }}

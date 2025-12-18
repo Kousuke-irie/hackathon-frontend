@@ -3,6 +3,7 @@ import * as api from "../services/api";
 import type { User } from "../types/user";
 import { addRecentView } from '../services/recent-views';
 import { RecentItemsDisplay } from "./RecentItemsDisplay";
+import {useNavigate} from "react-router-dom";
 
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js"
@@ -44,6 +45,8 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [isLiked, setIsLiked] = useState(false);
+    const navigate = useNavigate();
+
 
     useEffect(() => {
         (async () => {
@@ -91,7 +94,7 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
         setShowPaymentModal(false);
         setItem(prev => prev ? ({ ...prev, status: 'SOLD' }) : null);
         alert("購入が完了しました！");
-        window.location.href = '/purchase-in-progress';
+        navigate('/mypage');
     };
 
     if (loading) return <Box sx={{ p: 5, textAlign: 'center' }}>Loading...</Box>;

@@ -41,12 +41,8 @@ export const CommentSection = ({ itemId, currentUser }: CommentSectionProps) => 
         if (!newComment.trim()) return;
 
         try {
-            const newCommentResponse = await api.postComment(
-                itemId,
-                currentUser.id,
-                newComment);
-            // 新しいコメントをリストに追加
-            setComments([...comments, newCommentResponse]);
+            const res = await api.postComment(itemId, currentUser.id, newComment);
+            setComments([...comments, res]);
             setNewComment("");
         } catch (error) {
             console.error("Failed to post comment:", error);
