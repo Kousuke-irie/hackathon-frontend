@@ -30,7 +30,6 @@ export const MyItems = ({ user}: MyItemsProps) => {
                     setTransactions(res);
                     setItems([]);
                 } else if (tabValue === 2) {
-                    // 「売却済み」: 完了した取引履歴を取得
                     const res = await api.fetchPurchaseHistory(user.id);
                     setTransactions(res.filter(tx => tx.seller_id === user.id && (tx.Status === 'COMPLETED' || tx.Status === 'RECEIVED')));
                     setItems([]);
