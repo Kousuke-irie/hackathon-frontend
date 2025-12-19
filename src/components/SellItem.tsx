@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import {useNavigate} from "react-router-dom";
 import axios from "axios";
 import * as api from "../services/api";
 import type { User } from "../types/user";
@@ -35,6 +36,8 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
     const [isSaving, setIsSaving] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const isEditMode = !!editingItemId;
+
+    const navigate = useNavigate();
 
     // --- Computed States ---
     // 2段階選択ドロップダウンのデータソース
@@ -264,8 +267,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
             }
 
             if (isEditMode) {
-                // 編集完了後、下書きリストに戻るなど、親に通知するロジックが必要
-                window.location.href = '/drafts'; // Hard redirect (簡易策)
+                navigate('/mypage/drafts');
             }
         } catch (error) {
             console.error("Save/Draft failed:", error);
@@ -273,7 +275,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
         } finally {
             setIsSaving(false);
         }
-    }, [title, description, price, image,existingImageURL, categoryId, condition, shippingPayer, shippingFee, user, isEditMode, editingItemId]);
+    }, [title, description, price, image,existingImageURL, categoryId, condition, shippingPayer, shippingFee, user,navigate,isEditMode, editingItemId]);
     // 出品機能 (handleSubmit)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -447,7 +449,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
                             disabled={isSaving}
                             sx={{ flex: 1, py: 2, borderColor: '#1a1a1a', color: '#1a1a1a', fontWeight: 'bold' }}
                         >
-                            下書き保存
+                            {isEditMode ? '変更を保存する' : '下書きに保存'}
                         </Button>
                         <Button
                             type="submit"
@@ -455,7 +457,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
                             disabled={isSaving}
                             sx={{ flex: 2, py: 2, bgcolor: '#e91e63', fontWeight: 'bold', '&:hover': { bgcolor: '#c2185b' } }}
                         >
-                            {isSaving ? <CircularProgress size={24} color="inherit" /> : (isEditMode ? '変更を保存する' : '出品する')}
+                            {isSaving ? <CircularProgress size={24} color="inherit" /> : (isEditMode ? '下書き商品を出品する' : '出品する')}
                         </Button>
                     </Box>
                 </Paper>

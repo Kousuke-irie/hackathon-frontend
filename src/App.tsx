@@ -25,6 +25,8 @@ import { NotFound} from "./components/NotFound";
 import {MyPageLayout} from "./components/MyPageLayout.tsx";
 import {NotificationsPage} from "./components/NotificationsPage.tsx";
 import {TransactionScreen} from "./components/TransactionScreen.tsx";
+import {MyListPage} from "./components/MyListPage.tsx";
+import {CategoryGallery} from "./components/CategoryGallery.tsx";
 
 import type { User } from './types/user';
 
@@ -212,6 +214,7 @@ function AppContent() {
                         {/* 画面遷移に window.location.href を使用 */}
                         <Route path="/" element={<ItemList user={user} onItemClick={(id) => navigate(`/items/${id}`)} />}/>
                         <Route path="/items/:id" element={<ItemDetailWrapper user={user}/>}/>
+                        <Route path="/categories" element={<CategoryGallery />} />
 
                         {user ? (
                             <>
@@ -231,6 +234,7 @@ function AppContent() {
                                 <Route path="/communities/:id" element={<CommunityWrapper user={user}/>}/>
                                 <Route path="/notifications" element={<NotificationsPage user={user} />} />
                                 <Route path="/transactions/:txId" element={<TransactionScreen currentUser={user!} />} />
+                                <Route path="/mylist" element={<MyListPage user={user!} />} />
                             </>
                         ) : (
                             <Route path="*" element={<Navigate to="/" replace />} />

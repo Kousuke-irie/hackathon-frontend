@@ -133,6 +133,11 @@ export interface Transaction {
     Status: string;
 }
 
+export interface ItemListResponse {
+    items: Item[];
+    // 必要に応じて total_count などを追加
+}
+
 // --- 3. API通信関数 ---
 
 // ------------------------------------
@@ -168,7 +173,7 @@ export const fetchLikedItems = async (userId: number) : Promise<Item[]> => {
 /** 汎用的な商品一覧を取得 (自分が出品していないON_SALEの商品) */
 export const fetchItemList = async (
     params: ItemListParams
-): Promise<Item[]> => {
+): Promise<ItemListResponse> => { // 💡 戻り値を Item[] から ItemListResponse に変更
     const searchParams = new URLSearchParams();
 
     Object.entries(params).forEach(([key, value]) => {
@@ -177,7 +182,8 @@ export const fetchItemList = async (
         }
     });
     const response = await client.get(`/items?${searchParams.toString()}`);
-    return response.data.items;
+    // 💡 response.data が { items: [...] } であることを想定
+    return response.data;
 };
 
 /** 自分の出品商品一覧を取得 */

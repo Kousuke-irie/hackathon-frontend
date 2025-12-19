@@ -127,7 +127,7 @@ export const MyItems = ({ user}: MyItemsProps) => {
                                         ¥{tx.price_snapshot.toLocaleString()}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
-                                        {getStatusChipProps(tx.Status).label}
+                                        {getStatusChipProps(tx.Status || (tx as any).status).label}
                                     </Typography>
                                 </CardContent>
                             </Card>
