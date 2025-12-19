@@ -37,6 +37,7 @@ export const MyItems = ({ user}: MyItemsProps) => {
                 }
             } catch (error) {
                 console.error("Failed to fetch my items/transactions:", error);
+                setTransactions([]);
             } finally {
                 setLoading(false);
             }
@@ -94,7 +95,7 @@ export const MyItems = ({ user}: MyItemsProps) => {
                                         {item.title}
                                     </Typography>
                                     <Typography variant="body2" color="primary" sx={{ fontWeight: 'bold' }}>
-                                        ¥{item.price.toLocaleString()}
+                                        ¥{(item.price || 0).toLocaleString()}
                                     </Typography>
                                 </CardContent>
                             </Card>
@@ -146,7 +147,7 @@ export const MyItems = ({ user}: MyItemsProps) => {
                                         {tx.item.title}
                                     </Typography>
                                     <Typography variant="body2" color="primary" sx={{ fontWeight: 'bold' }}>
-                                        ¥{tx.price_snapshot.toLocaleString()}
+                                        ¥{(tx.price_snapshot || tx.item.price).toLocaleString()}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
                                         {getStatusChipProps(tx.status).label}

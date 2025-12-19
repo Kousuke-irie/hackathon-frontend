@@ -78,6 +78,15 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
         setSortOrder(order);
     };
 
+    const getDisplayImage = (urlJson: string) => {
+        try {
+            const urls = JSON.parse(urlJson);
+            return Array.isArray(urls) ? urls[0] : urlJson;
+        } catch {
+            return urlJson;
+        }
+    };
+
     return (
         <Box sx={{ pb: 8 }}>
             <Box sx={{ mb: 3, px: { xs: 2, md: 0 } }}>
@@ -180,7 +189,7 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                                 mb: 1
                             }}>
                                 <img
-                                    src={item.image_url}
+                                    src={getDisplayImage(item.image_url)}
                                     alt={item.title}
                                     style={{
                                         position: 'absolute',

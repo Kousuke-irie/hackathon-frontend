@@ -48,6 +48,9 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [isLiked, setIsLiked] = useState(false);
     const navigate = useNavigate();
+    const [images, setImages] = useState<string[]>([]);
+    const [activeIndex, setActiveIndex] = useState(0);
+
 
     const [communities, setCommunities] = useState<api.Community[]>([]);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -76,6 +79,17 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
             }
         })();
     }, [itemId, currentUser, navigate]);
+
+    useEffect(() => {
+        if (item?.image_url) {
+            try {
+                const parsed = JSON.parse(item.image_url);
+                setImages(Array.isArray(parsed) ? parsed : [item.image_url]);
+            } catch {
+                setImages([item.image_url]);
+            }
+        }
+    }, [item]);
 
     const handlePurchaseClick = async () => {
         if (!item) return;
@@ -164,18 +178,20 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
                         borderRadius: "8px",
                         overflow: "hidden"
                     }}>
-                        <img
-                            src={item.image_url}
-                            alt={item.title}
-                            style={{
-                                position: "absolute",
-                                top: 0,
-                                left: 0,
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "contain"
-                            }}
-                        />
+                        {images.map((url, i) => (
+                            <img  alt={"商品画像"} key={i} src={url} style={{ display: i === activeIndex ? 'block' : 'none' }} />
+                        ))}
+                        {images.length > 1 && (
+                            <Box sx={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 1 }}>
+                                {images.map((_, i) => (
+                                    <Box
+                                        key={i}
+                                        onClick={() => setActiveIndex(i)}
+                                        sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: i === activeIndex ? 'primary.main' : 'grey.400', cursor: 'pointer' }}
+                                    />
+                                ))}
+                            </Box>
+                        )}
                         {isSold && (
                             <Box sx={{
                                 position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.4)',
