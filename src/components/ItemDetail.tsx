@@ -63,6 +63,7 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
                 setLoading(true);
                 const itemData = await api.fetchItemDetail(itemId);
                 setItem(itemData);
+                setImages(parseImageUrls(itemData.image_url));
                 addRecentView(itemId);
                 if (currentUser) {
                     const likedStatus = await api.checkItemLiked(currentUser.id, itemId);
@@ -79,12 +80,6 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
             }
         })();
     }, [itemId, currentUser, navigate]);
-
-    useEffect(() => {
-        if (item?.image_url) {
-            setImages(parseImageUrls(item.image_url));
-        }
-    }, [item]);
 
     const handlePurchaseClick = async () => {
         if (!item) return;
@@ -165,52 +160,62 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
 
             <Grid container spacing={4}>
                 <Grid size={{ xs: 12, md: 6 }}>
+                    {/* 💡 メイン画像表示エリア */}
                     <Box sx={{
                         width: "100%",
+                        aspectRatio: "1/1",
                         position: "relative",
                         bgcolor: "#f9f9f9",
-                        borderRadius: "8px",
+                        borderRadius: "12px",
                         overflow: "hidden",
-                        aspectRatio: "1/1", // 💡 コンテナを正方形に固定
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
+                        mb: 2
                     }}>
-                        {images.map((url, i) => (
-                            <img
-                                alt="商品画像"
-                                key={i}
-                                src={url}
-                                style={{
-                                    display: i === activeIndex ? 'block' : 'none',
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'contain', // 💡 全体が見えるように収める
-                                    backgroundColor: '#fff'
-                                }}
-                            />
-                        ))}
-                        {images.length > 1 && (
-                            <Box sx={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 1 }}>
-                                {images.map((_, i) => (
-                                    <Box
-                                        key={i}
-                                        onClick={() => setActiveIndex(i)}
-                                        sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: i === activeIndex ? 'primary.main' : 'grey.400', cursor: 'pointer' }}
-                                    />
-                                ))}
-                            </Box>
-                        )}
+                        <img
+                            src={images[activeIndex]}
+                            alt="商品メイン画像"
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
                         {isSold && (
                             <Box sx={{
                                 position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.4)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 color: '#fff', fontSize: '2rem', fontWeight: 'bold'
-                            }}>
-                                SOLD OUT
-                            </Box>
+                            }}>SOLD OUT</Box>
                         )}
                     </Box>
+
+                    {/* 💡 複数画像がある場合のサムネイル・スクロールエリア */}
+                    {images.length > 1 && (
+                        <Box sx={{
+                            display: 'flex',
+                            gap: 1,
+                            overflowX: 'auto',
+                            pb: 1,
+                            '&::-webkit-scrollbar': { height: '4px' },
+                            '&::-webkit-scrollbar-thumb': { bgcolor: '#ddd', borderRadius: '10px' }
+                        }}>
+                            {images.map((url, i) => (
+                                <Box
+                                    key={i}
+                                    onClick={() => setActiveIndex(i)}
+                                    sx={{
+                                        width: 70,
+                                        height: 70,
+                                        flexShrink: 0,
+                                        borderRadius: '8px',
+                                        overflow: 'hidden',
+                                        cursor: 'pointer',
+                                        border: '2px solid',
+                                        borderColor: i === activeIndex ? 'primary.main' : 'transparent',
+                                        transition: '0.2s',
+                                        '&:hover': { opacity: 0.8 }
+                                    }}
+                                >
+                                    <img src={url} alt={"商品画像"} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </Box>
+                            ))}
+                        </Box>
+                    )}
                 </Grid>
 
                 <Grid size={{ xs: 12, md: 6 }}>
