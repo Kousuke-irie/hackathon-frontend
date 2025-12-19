@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import {useNavigate} from "react-router-dom";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import { Box, Typography, Chip } from '@mui/material';
+import { Box, Typography, Chip, Avatar } from '@mui/material';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { getStatusChipProps } from '../utils/transaction-helpers.tsx'
 import {getFirstImageUrl} from "../utils/image-helpers.tsx";
@@ -14,6 +15,7 @@ interface InProgressPurchasesProps {
 export const InProgressPurchases = ({ user, onItemClick }: InProgressPurchasesProps) => {
     const [transactions, setTransactions] = useState<api.Transaction[]>([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     const fetchInProgressHistory = useCallback(async () => {
         setLoading(true);
@@ -42,7 +44,24 @@ export const InProgressPurchases = ({ user, onItemClick }: InProgressPurchasesPr
     }
 
     return (
-        <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>
+        <Box sx={{ maxWidth: 800, mx: 'auto', pb: 10 }}>
+            {/* 💡 メルカリ風マイページヘッダーを追加 */}
+            <Box
+                onClick={() => navigate(`/user/${user.id}`)}
+                sx={{
+                    display: 'flex', alignItems: 'center', p: 3, mb: 3,
+                    cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }
+                }}
+            >
+                <Avatar src={user.icon_url} sx={{ width: 64, height: 64, mr: 2 }} />
+                <Box sx={{ flex: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800 }}>{user.username}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        出品数 0 ・ フォロワー 0
+                    </Typography>
+                </Box>
+                <ArrowForwardIosIcon sx={{ fontSize: '1rem', color: '#ccc' }} />
+            </Box>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>
                 取引中の商品
             </Typography>
