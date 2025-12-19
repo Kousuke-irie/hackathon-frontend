@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import {Box, Typography, Button, Avatar, InputBase} from "@mui/material";
+import {Box, Typography, Button, Avatar, InputBase,Dialog, DialogTitle,DialogContent,TextField,CircularProgress} from "@mui/material";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 interface Comment {
     id: number;
@@ -22,6 +23,11 @@ interface CommentSectionProps {
 export const CommentSection = ({ itemId, currentUser }: CommentSectionProps) => {
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState("");
+
+    // AI機能用ステート
+    const [aiModalOpen, setAiModalOpen] = useState(false);
+    const [aiIntent, setAiIntent] = useState("");
+    const [isGenerating, setIsGenerating] = useState(false);
 
     // コメント一覧の取得
     useEffect(() => {
@@ -47,6 +53,21 @@ export const CommentSection = ({ itemId, currentUser }: CommentSectionProps) => 
         } catch (error) {
             console.error("Failed to post comment:", error);
             alert("コメントの送信に失敗しました");
+        }
+    };
+
+    const handleGenerateAI = async () => {
+        if (!aiIntent.trim()) return;
+        setIsGenerating(true);
+        try {
+            const generated = await api.generateAIMessage(aiIntent);
+            setNewComment(generated); // 生成された文章を入力欄にセット
+            setAiModalOpen(false);
+            setAiIntent("");
+        } catch (error) {
+            alert("メッセージの生成に失敗しました");
+        } finally {
+            setIsGenerating(false);
         }
     };
 
@@ -78,30 +99,69 @@ export const CommentSection = ({ itemId, currentUser }: CommentSectionProps) => 
             </Box>
 
             {/* 入力フォームをメルカリのようにシンプルに */}
-            <Box component="form" onSubmit={handlePostComment} sx={{ display: 'flex', gap: 1 }}>
-                <InputBase
-                    placeholder="質問する"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    sx={{
-                        flex: 1,
-                        bgcolor: '#f5f5f5',
-                        borderRadius: '4px',
-                        px: 2,
-                        py: 1,
-                        fontSize: '0.9rem'
-                    }}
-                />
+            <Box component="form" onSubmit={handlePostComment} sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    <InputBase
+                        placeholder="質問する"
+                        multiline
+                        rows={3}
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        sx={{
+                            flex: 1,
+                            bgcolor: '#f5f5f5',
+                            borderRadius: '4px',
+                            px: 2,
+                            py: 1,
+                            fontSize: '0.9rem'
+                        }}
+                    />
+                    <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        disabled={!newComment.trim()}
+                        sx={{ borderRadius: '4px', px: 3, height: 'fit-content' }}
+                    >
+                        送信
+                    </Button>
+                </Box>
+
+                {/* AI作成ボタン */}
                 <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    disabled={!newComment.trim()}
-                    sx={{ borderRadius: '4px', px: 3 }}
+                    startIcon={<AutoAwesomeIcon />}
+                    size="small"
+                    onClick={() => setAiModalOpen(true)}
+                    sx={{ alignSelf: 'flex-start', color: '#e91e63', fontWeight: 'bold' }}
                 >
-                    送信
+                    AIでメッセージを作成
                 </Button>
             </Box>
+
+            {/* AI入力ダイアログ */}
+            <Dialog open={aiModalOpen} onClose={() => setAiModalOpen(false)} fullWidth maxWidth="xs">
+                <DialogTitle sx={{ fontWeight: 800, fontSize: '1rem' }}>どんなメッセージを作りますか？</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        fullWidth
+                        placeholder="例：1000円に値下げしてほしい、発送はいつになるか聞きたい"
+                        variant="outlined"
+                        size="small"
+                        value={aiIntent}
+                        onChange={(e) => setAiIntent(e.target.value)}
+                        sx={{ mt: 1, mb: 2 }}
+                    />
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={handleGenerateAI}
+                        disabled={isGenerating || !aiIntent.trim()}
+                        sx={{ bgcolor: '#1a1a1a' }}
+                    >
+                        {isGenerating ? <CircularProgress size={20} color="inherit" /> : "文章を作成する"}
+                    </Button>
+                </DialogContent>
+            </Dialog>
         </Box>
     );
 };

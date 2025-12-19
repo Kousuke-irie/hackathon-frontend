@@ -346,6 +346,18 @@ export const updateTransactionStatus = async (
     await client.put(`/transactions/${txId}/status`, { new_status: newStatus });
 };
 
+/** AIによる取引メッセージ生成 */
+export const generateAIMessage = async (intent: string): Promise<string> => {
+    const response = await client.post('/items/generate-message', { intent });
+    return response.data.message;
+};
+
+/** AIコンシェルジュに質問する */
+export const askAIConcierge = async (query: string): Promise<string> => {
+    const response = await client.post('/meta/ai-chat', { query });
+    return response.data.answer;
+};
+
 // ------------------------------------
 // 決済・取引
 // ------------------------------------

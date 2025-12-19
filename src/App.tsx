@@ -31,6 +31,7 @@ import {PublicProfile} from "./components/PublicProfile.tsx";
 import {LoginModal} from "./components/LoginModal.tsx";
 import {ChatList} from "./components/ChatList.tsx";
 import {ChatScreen} from "./components/ChatScreen.tsx";
+import {AIChatBot} from "./components/AIChatBot.tsx";
 
 import type { User } from './types/user';
 import {FollowListPage} from "./components/FollowListPage.tsx";
@@ -260,6 +261,7 @@ function AppContent() {
                 onClose={() => setLoginModalOpen(false)}
                 onLoginSuccess={handleLoginSuccess}
             />
+            <AIChatBot />
         </>
     );
 }
