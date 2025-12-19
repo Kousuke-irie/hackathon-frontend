@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Box, Avatar, Typography, Button, Paper, Tabs, Tab, Grid} from "@mui/material";
+import { Box, Avatar, Typography, Button, Paper, Tabs, Tab} from "@mui/material";
 import * as api from "../services/api";
 import type { User } from "../types/user";
 import { getFirstImageUrl } from "../utils/image-helpers";
@@ -60,18 +60,55 @@ export const PublicProfile = ({ currentUser }: { currentUser: User | null }) => 
                 <Tab label="評価" />
             </Tabs>
 
-            <Grid container spacing={1} sx={{ mt: 2 }}>
+            <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)', // 3列固定
+                    gap: 1, // spacing={1} 相当
+                    mt: 2
+                }}
+            >
                 {items.map(item => (
-                    <Grid item xs={4} key={item.id} onClick={() => navigate(`/items/${item.id}`)}>
-                        <Box sx={{ width: '100%', pt: '100%', position: 'relative', bgcolor: '#f5f5f5' }}>
-                            <img src={getFirstImageUrl(item.image_url)} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                            <Box sx={{ position: 'absolute', bottom: 4, left: 0, bgcolor: 'rgba(0,0,0,0.7)', color: '#fff', px: 1, fontSize: '0.7rem' }}>
-                                ¥{item.price.toLocaleString()}
-                            </Box>
+                    <Box
+                        key={item.id}
+                        onClick={() => navigate(`/items/${item.id}`)}
+                        sx={{
+                            width: '100%',
+                            pt: '100%',
+                            position: 'relative',
+                            bgcolor: '#f5f5f5',
+                            cursor: 'pointer', // クリック可能であることを示す
+                            '&:hover': { opacity: 0.9 } // 少しインタラクティブに
+                        }}
+                    >
+                        <img
+                            src={getFirstImageUrl(item.image_url)}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                            }}
+                            alt={item.title}
+                        />
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                bottom: 4,
+                                left: 0,
+                                bgcolor: 'rgba(0,0,0,0.7)',
+                                color: '#fff',
+                                px: 1,
+                                fontSize: '0.7rem'
+                            }}
+                        >
+                            ¥{item.price.toLocaleString()}
                         </Box>
-                    </Grid>
+                    </Box>
                 ))}
-            </Grid>
+            </Box>
         </Box>
     );
 };
