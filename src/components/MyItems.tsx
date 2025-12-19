@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {useNavigate} from "react-router-dom";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import { Box, Tabs, Tab, Card, CardMedia, CardContent, Typography } from '@mui/material';
+import { Box, Tabs, Tab, Card, CardMedia, CardContent, Typography, Button } from '@mui/material';
 import {getStatusChipProps} from "../utils/transaction-helpers.tsx";
 
 interface MyItemsProps {
@@ -21,18 +21,20 @@ export const MyItems = ({ user}: MyItemsProps) => {
             setLoading(true);
             try {
                 if (tabValue === 0) {
-                    // 「出品中」: 自分の出品した ON_SALE 商品を取得
-                    const res = await api.fetchMyItems(user.id);
-                    setItems(res.filter(i => i.status === 'ON_SALE'));
+                    // 出品中: status=ON_SALE
+                    const res = await api.fetchMyItems(user.id, 'ON_SALE');
+                    setItems(res);
                     setTransactions([]);
                 } else if (tabValue === 1) {
+                    // 取引中: 既存の販売中取引取得
                     const res = await api.fetchMySalesInProgress(user.id);
                     setTransactions(res);
                     setItems([]);
                 } else if (tabValue === 2) {
-                    const res = await api.fetchPurchaseHistory(user.id);
-                    setTransactions(res.filter(tx => tx.seller_id === user.id && (tx.Status === 'COMPLETED' || tx.Status === 'RECEIVED')));
-                    setItems([]);
+                    // 売却済み: 💡 拡張したAPIで status=SOLD を取得
+                    const res = await api.fetchMyItems(user.id, 'SOLD');
+                    setItems(res);
+                    setTransactions([]);
                 }
             } catch (error) {
                 console.error("Failed to fetch my items/transactions:", error);
@@ -71,7 +73,7 @@ export const MyItems = ({ user}: MyItemsProps) => {
                 >
                     {/* 出品中タブの場合: api.Item を表示 */}
                     {tabValue === 0 && items.map((item) => (
-                        <Box key={item.id}>
+                        <Box key={item.id} sx={{ position: 'relative' }}>
                             <Card
                                 onClick={() => navigate(`/items/${item.id}`)} // 商品詳細画面へ
                                 sx={{
@@ -97,6 +99,27 @@ export const MyItems = ({ user}: MyItemsProps) => {
                                     </Typography>
                                 </CardContent>
                             </Card>
+                            <Button
+                                size="small"
+                                variant="contained"
+                                onClick={(e) => {
+                                    e.stopPropagation(); // 詳細への遷移を阻止
+                                    navigate(`/sell/edit/${item.id}`);
+                                }}
+                                sx={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                    bgcolor: 'rgba(255,255,255,0.9)',
+                                    color: '#1a1a1a',
+                                    fontSize: '0.7rem',
+                                    minWidth: 'auto',
+                                    px: 1,
+                                    '&:hover': { bgcolor: '#fff' }
+                                }}
+                            >
+                                編集
+                            </Button>
                         </Box>
                     ))}
 
@@ -127,7 +150,7 @@ export const MyItems = ({ user}: MyItemsProps) => {
                                         ¥{tx.price_snapshot.toLocaleString()}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
-                                        {getStatusChipProps(tx.Status || (tx as any).status).label}
+                                        {getStatusChipProps(tx.status).label}
                                     </Typography>
                                 </CardContent>
                             </Card>

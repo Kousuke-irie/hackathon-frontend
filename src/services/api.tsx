@@ -130,7 +130,7 @@ export interface Transaction {
     price_snapshot: number;
     created_at: string;
     item: Item; // 紐付いた商品情報
-    Status: string;
+    status: string;
 }
 
 export interface ItemListResponse {
@@ -187,9 +187,9 @@ export const fetchItemList = async (
 };
 
 /** 自分の出品商品一覧を取得 */
-export const fetchMyItems = async (userId: number): Promise<Item[]> => {
-    const response = await client.get(`/my/items`, {
-        // 自分の出品取得APIはX-User-IDヘッダーが必要
+export const fetchMyItems = async (userId: number, status?: string): Promise<Item[]> => {
+    const url = status ? `/my/items?status=${status}` : '/my/items';
+    const response = await client.get(url, {
         headers: { 'X-User-ID': userId.toString() },
     });
     return response.data.items;

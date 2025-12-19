@@ -120,7 +120,7 @@ export const PurchaseHistory = ({ user, onItemClick }: PurchaseHistoryProps) => 
                                         {tx.item.title}
                                     </Typography>
                                     <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main', mb: 1 }}>
-                                        ¥{tx.price_snapshot.toLocaleString()}
+                                        ¥{(tx.price_snapshot || tx.item.price).toLocaleString()}
                                     </Typography>
 
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

@@ -28,7 +28,7 @@ export const MyListPage = ({ user }: { user: User }) => {
                 {tabValue === 0 && <LikedItems user={user} onItemClick={(id) => navigate(`/items/${id}`)} />}
                 {tabValue === 1 && (
                     <Box sx={{ mt: -4 }}> {/* 既存コンポーネントの余白調整 */}
-                        <RecentItemsDisplay onItemClick={(id) => navigate(`/items/${id}`)} />
+                        <RecentItemsDisplay currentUser={user} onItemClick={(id) => navigate(`/items/${id}`)} />
                     </Box>
                 )}
                 {tabValue === 2 && (

@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import * as api from "../services/api";
 import { getRecentViews } from '../services/recent-views'; // LocalStorageからIDを取得
 import { Box, Typography, CircularProgress } from '@mui/material';
+import type {User} from "../types/user";
 
 interface RecentItemsDisplayProps {
     onItemClick: (id: number) => void;
+    currentUser: User;
 }
 
-export const RecentItemsDisplay = ({ onItemClick }: RecentItemsDisplayProps) => {
+export const RecentItemsDisplay = ({ onItemClick, currentUser }: RecentItemsDisplayProps) => {
     const [recentItems, setRecentItems] = useState<api.Item[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -22,14 +24,17 @@ export const RecentItemsDisplay = ({ onItemClick }: RecentItemsDisplayProps) => 
             try {
                 // ▼ APIで商品情報を取得
                 const fetchedItems = await api.fetchItemsByIds(itemIds);
-                setRecentItems(fetchedItems);
+                const filteredItems = currentUser
+                    ? fetchedItems.filter(item => item.seller_id !== currentUser.id)
+                    : fetchedItems;
+                setRecentItems(filteredItems);
             } catch (error) {
                 console.error("Failed to fetch recent views data:", error);
             } finally {
                 setLoading(false);
             }
         })();
-    }, []); 
+    }, [currentUser]);
 
     if (loading) {
         return <CircularProgress size={20} sx={{ mt: 1 }} />;

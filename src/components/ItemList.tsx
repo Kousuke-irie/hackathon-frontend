@@ -27,7 +27,6 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
 
     const currentUserID = user ? user.id : 0;
 
-    // 現在選択されているカテゴリー情報を取得
     const currentCategoryName = useMemo(() => {
         if (!categoryQuery) return keyword ? `「${keyword}」の検索結果` : "おすすめ商品";
         const catId = Number(categoryQuery);
@@ -62,12 +61,11 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                     sort_order: sortOrder,
                     user_id: currentUserID || undefined
                 };
-                // 💡 api.tsx の修正に合わせて res.items で取得
                 const res = await api.fetchItemList(params);
                 setItems(res.items || []);
             } catch (error) {
                 console.error("Failed to fetch items:", error);
-                setItems([]); // エラー時は空配列にリセット
+                setItems([]);
             } finally {
                 setLoading(false);
             }
@@ -75,14 +73,13 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
     }, [keyword, categoryQuery, selectedCondition, sortBy, sortOrder, currentUserID]);
 
     const handleSortChange = (value: string) => {
-        const [field, order] = value.split('_') as [any, any];
+        const [field, order] = value.split('_') as [('created_at' | 'price'), ('desc' | 'asc')];
         setSortBy(field);
         setSortOrder(order);
     };
 
     return (
         <Box sx={{ pb: 8 }}>
-            {/* カテゴリー・検索キーワードのタイトル表示 */}
             <Box sx={{ mb: 3, px: { xs: 2, md: 0 } }}>
                 <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: 1 }}>
                     {currentCategoryName}
@@ -94,7 +91,6 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                 )}
             </Box>
 
-            {/* 刷新されたモダンな絞り込みバー */}
             <Box sx={{
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -143,7 +139,7 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                 </Stack>
             </Box>
 
-            {!keyword && !categoryQuery && <RecentItemsDisplay onItemClick={onItemClick} />}
+            {!keyword && !categoryQuery && user && <RecentItemsDisplay currentUser={user} onItemClick={onItemClick} />}
 
             {loading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>

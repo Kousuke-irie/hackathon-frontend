@@ -155,23 +155,18 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
 
             if (aiData.category_id) {
                 const selectedCatId = aiData.category_id;
+                const selectedCat = categoryTree.find(c => c.id === selectedCatId) ||
+                    categoryTree.flatMap(c => c.children || []).find(c => c.id === selectedCatId);
 
-                // カテゴリツリー全体から、AIが提案したIDを持つカテゴリを検索
-                const selectedCat = categoryTree.find(c => c.id === selectedCatId);
-
-                // 1. カテゴリが有効で、かつ親IDを持つ（子カテゴリである）ことを確認
-                if (selectedCat && selectedCat.parent_id) {
-                    const parentId = selectedCat.parent_id;
-
-                    // 💡 最終修正: 同期的に両方をセット
-                    setParentCategory(parentId);
-                    setCategoryId(aiData.category_id); // AIのIDを直接セット
-
-                } else {
-                    // 🚨 無効なIDまたはトップレベルIDが返された場合
-                    alert(`AIが提案したID ${selectedCatId} は無効なカテゴリです。手動で選択してください。`);
-                    setParentCategory(null);
-                    setCategoryId(0);
+                if (selectedCat) {
+                    if (selectedCat.parent_id) {
+                        setParentCategory(selectedCat.parent_id);
+                        setCategoryId(selectedCatId);
+                    } else {
+                        // 大カテゴリが返ってきた場合
+                        setParentCategory(selectedCatId);
+                        setCategoryId(0); // 中カテゴリは選ばせる
+                    }
                 }
             }
 

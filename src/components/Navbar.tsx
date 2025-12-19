@@ -27,9 +27,10 @@ const CATEGORY_LINKS = [
     { name: 'マイリスト', path: '/mylist' },
     { name: 'レディース', path: '/?cat=1' },
     { name: 'メンズ', path: '/?cat=2' },
-    { name: 'インテリア', path: '/?cat=3' },
-    { name: '本・音楽・ゲーム', path: '/?cat=4' },
-    { name: 'おもちゃ・ホビー', path: '/?cat=5' },
+    { name: 'インテリア', path: '/?cat=4' },
+    { name: '本・音楽・ゲーム', path: '/?cat=6' },
+    { name: 'ホビー・楽器', path: '/?cat=7' },
+    { name: 'コスメ・美容', path: '/?cat=8' },
     { name: 'すべて見る', path: '/categories' },
 ];
 
