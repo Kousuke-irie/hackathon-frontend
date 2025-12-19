@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Route, Routes, useParams, useNavigate, Navigate } from 'react-router-dom';
-import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { auth, provider } from "./firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth} from "./firebase";
 import * as api from "./services/api";
 // MUI
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -27,6 +27,8 @@ import {NotificationsPage} from "./components/NotificationsPage.tsx";
 import {TransactionScreen} from "./components/TransactionScreen.tsx";
 import {MyListPage} from "./components/MyListPage.tsx";
 import {CategoryGallery} from "./components/CategoryGallery.tsx";
+import {PublicProfile} from "./components/PublicProfile.tsx";
+import {LoginModal} from "./components/LoginModal.tsx";
 
 import type { User } from './types/user';
 
@@ -135,14 +137,16 @@ const SellItemWrapper = ({ user }: { user: User }) => {
 function AppContent() {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [loginModalOpen, setLoginModalOpen] = useState(false);
     const navigate = useNavigate();
 
-    const handleLogin = async () => {
+    // 💡 ログイン成功時の処理を共通化
+    const handleLoginSuccess = async (idToken: string) => {
         try {
-            const result = await signInWithPopup(auth, provider);
-            const idToken = await result.user.getIdToken();
             const response = await api.loginUser(idToken);
             setUser(response.user);
+            setLoginModalOpen(false);
+            alert("ログインしました");
         } catch (e) {
             console.error("Login failed:", e);
             alert("ログインに失敗しました");
@@ -201,7 +205,7 @@ function AppContent() {
     return (
         <>
                 {/* Navbar にログアウト関数を渡すように修正 */}
-                <Navbar currentUser={user} onLogin={handleLogin} onLogout={handleLogout} />
+            <Navbar currentUser={user} onLogin={() => setLoginModalOpen(true)} onLogout={handleLogout} />
 
                 <div style={{
                     padding: "20px",
@@ -226,7 +230,7 @@ function AppContent() {
                                     <Route path="likes" element={<LikedItems user={user} onItemClick={(id:number) => navigate(`/items/${id}`)} />}/>
                                 </Route>
 
-                                <Route path="/profile" element={<UserProfile user={user} onUserUpdate={handleUserUpdate} onLogout={handleLogout}/>}/>
+                                <Route path="/profile" element={<UserProfile user={user} onUpdate={handleUserUpdate} />}/>
                                 <Route path="/sell" element={<SellItemWrapper user={user} />}/>
                                 <Route path="/sell/edit/:id" element={<SellItemWrapper user={user} />}/>
                                 <Route path="/swipe" element={<SwipeDeck user={user!} />}/>
@@ -235,6 +239,7 @@ function AppContent() {
                                 <Route path="/notifications" element={<NotificationsPage user={user} />} />
                                 <Route path="/transactions/:txId" element={<TransactionScreen currentUser={user!} />} />
                                 <Route path="/mylist" element={<MyListPage user={user!} />} />
+                                <Route path="/user/:userId" element={<PublicProfile currentUser={user} />} />
                             </>
                         ) : (
                             <Route path="*" element={<Navigate to="/" replace />} />
@@ -242,6 +247,13 @@ function AppContent() {
                         <Route path="*" element={<NotFound />} />
                     </Routes>
                 </div>
+
+            {/* 💡 ログインモーダルコンポーネントを配置 */}
+            <LoginModal
+                open={loginModalOpen}
+                onClose={() => setLoginModalOpen(false)}
+                onLoginSuccess={handleLoginSuccess}
+            />
         </>
     );
 }

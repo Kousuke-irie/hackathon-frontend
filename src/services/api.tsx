@@ -155,6 +155,18 @@ export const loginUser = async (idToken: string): Promise<LoginResponse> => {
     return response.data;
 };
 
+/** ユーザー情報を取得 (公開プロフィール用) */
+export const fetchUserDetail = async (userId: number): Promise<User> => {
+    const response = await client.get(`/users/${userId}`);
+    return response.data.user;
+};
+
+/** プロフィール情報を更新 (住所や生年月日を含む) */
+export const updateProfile = async (data: Partial<User> & { id: number }): Promise<User> => {
+    const response = await client.put('/users/me', data);
+    return response.data.user;
+};
+
 // ------------------------------------
 // マイページ
 // ------------------------------------

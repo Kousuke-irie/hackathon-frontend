@@ -1,52 +1,35 @@
 import { useState } from "react";
-import type { User } from "../types/user";
+import { Box, TextField, Button, Avatar, Typography, Paper, Stack } from "@mui/material";
 import * as api from "../services/api";
-import { useNavigate } from "react-router-dom";
-import { Button, TextField, Box, Avatar, Typography, Divider } from '@mui/material';
+import type { User } from "../types/user";
 
 interface UserProfileProps {
     user: User;
-    onUserUpdate: (updatedUser: User) => void;
-    onLogout: () => void;
+    onUpdate: (updatedUser: User) => void;
 }
 
-export const UserProfile = ({ user, onUserUpdate, onLogout }: UserProfileProps) => {
-    // フォームの状態管理 (初期値は現在のユーザー情報)
-    const [username, setUsername] = useState(user.username);
+export const UserProfile = ({ user, onUpdate }: UserProfileProps) => {
+    const [username, setUsername] = useState(user.username || "");
     const [bio, setBio] = useState(user.bio || "");
-    const [iconUrl, setIconUrl] = useState(user.icon_url)
+    const [address, setAddress] = useState(user.address || "");
+    const [birthdate, setBirthdate] = useState(user.birthdate || "");
     const [isSaving, setIsSaving] = useState(false);
 
-    const navigate = useNavigate();
-
-    const handleLogoutClick = () => {
-        onLogout();
-        navigate("/");
-    }
-
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSave = async () => {
         setIsSaving(true);
         try {
-            // ▼ api.tsにupdateUserを定義していないため、一旦ここにロジックを記述します
-            // 🚨 注意: api.tsに updateProfile(id: number, name: string, bio: string) を追加するのが理想です
-
-            const response = await api.client.put('/users/me', { // ルートは /users/me のPUTを想定
+            const updated = await api.updateProfile({
                 id: user.id,
-                username: username,
-                bio: bio,
-                icon_url: iconUrl,
+                username,
+                bio,
+                address,
+                birthdate
             });
-
-            const data = response.data; // 👈 axiosの応答には .data にJSONボディが含まれる
-
-            onUserUpdate(data.user);
-
-            alert("プロフィールを更新しました！");
-            // App.tsxのuser stateも更新が必要ですが、今回は再ログインで対応（本来はプロパティ更新）
+            onUpdate(updated);
+            alert("プロフィールを更新しました");
         } catch (error) {
             console.error(error);
-            alert("更新に失敗しました。");
+            alert("更新に失敗しました");
         } finally {
             setIsSaving(false);
         }
@@ -54,72 +37,83 @@ export const UserProfile = ({ user, onUserUpdate, onLogout }: UserProfileProps) 
 
     return (
         <Box sx={{ maxWidth: 600, mx: 'auto', py: 4, px: 2 }}>
-            {/* ヘッダー情報（表示用） */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 6 }}>
-                <Avatar
-                    src={user.icon_url}
-                    alt={user.username}
-                    sx={{ width: 100, height: 100, mb: 2, border: '1px solid #eee' }}
-                />
-                <Typography variant="h5" sx={{ fontWeight: 800 }}>{user.username}</Typography>
-                <Typography variant="body2" color="text.secondary">ID: {user.id}</Typography>
-            </Box>
+            <Typography variant="h5" sx={{ fontWeight: 800, mb: 4 }}>プロフィール設定</Typography>
 
-            <Divider sx={{ my: 4 }} />
+            <Stack spacing={4}>
+                {/* 基本情報セクション */}
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+                    {/* Gridの代わりにBoxのFlexboxを使用 */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                        <Avatar src={user.icon_url} sx={{ width: 80, height: 80, mr: 2 }} />
+                        <Button variant="outlined" size="small">画像を変更</Button>
+                    </Box>
 
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>プロフィール設定</Typography>
+                    <Stack spacing={3}>
+                        <TextField
+                            label="ユーザー名"
+                            fullWidth
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                        />
+                        <TextField
+                            label="自己紹介"
+                            fullWidth
+                            multiline
+                            rows={4}
+                            value={bio}
+                            onChange={(e) => setBio(e.target.value)}
+                            placeholder="趣味や発送方法などについて書きましょう"
+                        />
+                    </Stack>
+                </Paper>
 
-            <form onSubmit={handleSave}>
-                <Box sx={{ display: 'grid', gap: 3 }}>
-                    <TextField
-                        label="アイコン画像URL"
-                        fullWidth
-                        variant="standard"
-                        value={iconUrl}
-                        onChange={(e) => setIconUrl(e.target.value)}
-                    />
-                    <TextField
-                        label="ユーザー名"
-                        fullWidth
-                        variant="standard"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        required
-                    />
-                    <TextField
-                        label="自己紹介"
-                        fullWidth
-                        multiline
-                        rows={4}
-                        variant="outlined"
-                        value={bio}
-                        onChange={(e) => setBio(e.target.value)}
-                        sx={{ mt: 1 }}
-                    />
+                {/* 個人情報セクション（配送用など） */}
+                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>個人情報・お届け先</Typography>
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+                    <Stack spacing={3}>
+                        <TextField
+                            label="メールアドレス"
+                            fullWidth
+                            disabled
+                            value={user.email}
+                            helperText="メールアドレスは変更できません"
+                        />
+                        <TextField
+                            label="生年月日"
+                            type="date"
+                            fullWidth
+                            // 💡 InputLabelProps の非推奨警告を slotProps で修正
+                            slotProps={{
+                                inputLabel: {
+                                    shrink: true,
+                                },
+                            }}
+                            value={birthdate}
+                            onChange={(e) => setBirthdate(e.target.value)}
+                        />
+                        <TextField
+                            label="住所"
+                            fullWidth
+                            multiline
+                            rows={2}
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                            placeholder="東京都渋谷区..."
+                        />
+                    </Stack>
+                </Paper>
 
-                    <Button
-                        type="submit"
-                        variant="contained"
-                        color="primary"
-                        fullWidth
-                        disabled={isSaving}
-                        sx={{ mt: 2, py: 1.5, fontWeight: 'bold', borderRadius: '8px' }}
-                    >
-                        {isSaving ? '保存中...' : '変更を保存'}
-                    </Button>
-                </Box>
-            </form>
-
-            <Box sx={{ mt: 8, pt: 4, borderTop: '1px solid #eee' }}>
                 <Button
-                    onClick={handleLogoutClick}
-                    variant="text"
+                    variant="contained"
                     fullWidth
-                    sx={{ color: '#ff4d4f', fontWeight: 'bold', textTransform: 'none' }}
+                    size="large"
+                    disabled={isSaving}
+                    onClick={handleSave}
+                    sx={{ bgcolor: '#e91e63', fontWeight: 'bold', py: 1.5 }}
                 >
-                    ログアウト
+                    {isSaving ? "保存中..." : "変更を保存する"}
                 </Button>
-            </Box>
+            </Stack>
         </Box>
     );
 };
