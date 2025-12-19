@@ -74,7 +74,7 @@ export const InProgressPurchases = ({ user, onItemClick }: InProgressPurchasesPr
                                     ¥{tx.price_snapshot.toLocaleString()}
                                 </Typography>
                                 <Chip
-                                    label={getStatusChipProps(tx.Status || (tx as any).status).label}
+                                    label={getStatusChipProps(tx.status).label}
                                     size="small"
                                     variant="filled"
                                     sx={{

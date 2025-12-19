@@ -85,7 +85,7 @@ export const PurchaseHistory = ({ user, onItemClick }: PurchaseHistoryProps) => 
 
             <Box sx={{ display: 'grid', gap: 2 }}>
                 {transactions.map((tx) => {
-                    const txStatus = tx.Status || 'PURCHASED';
+                    const txStatus = tx.status || 'PURCHASED';
                     const chip = getStatusChipProps(txStatus);
                     const isSeller = tx.item.seller.id === user.id;
                     const isCanceled = txStatus === 'CANCELED';

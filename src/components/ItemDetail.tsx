@@ -276,11 +276,11 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
 
             {currentUser && <CommentSection itemId={itemId} currentUser={currentUser} />}
 
-            {!isMyItem && (
+            {!isMyItem && currentUser && (
                 <Box sx={{ mt: 8 }}>
-                    <RecentItemsDisplay onItemClick={(id) => {
+                    <RecentItemsDisplay currentUser={currentUser} onItemClick={(id) => {
                         onBack();
-                        window.location.href = `/items/${id}`;
+                        navigate(`/items/${id}`);
                     }} />
                 </Box>
             )}

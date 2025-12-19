@@ -87,7 +87,7 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
     if (!tx) return <Typography align="center" sx={{ mt: 5 }}>取引情報が見つかりません</Typography>;
 
     // 💡 判定ロジックを強化: 大文字の 'Status' を優先参照し、確実に大文字に変換する
-    const currentStatus = (tx.Status || (tx as any).status || "").toUpperCase();
+    const currentStatus = (tx.status || (tx as any).status || "").toUpperCase();
     const isSeller = Number(tx.seller_id) === Number(currentUser.id);
 
     return (
