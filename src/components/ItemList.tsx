@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import { Box, Divider, Select, MenuItem, Typography, CircularProgress, Stack } from "@mui/material";
-import { useSearchParams } from "react-router-dom";
+import { Box, Divider, Select, MenuItem, Typography, CircularProgress, Stack, Avatar } from "@mui/material";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { RecentItemsDisplay } from "./RecentItemsDisplay";
-import {getFirstImageUrl} from "../utils/image-helpers.tsx";
+import { getFirstImageUrl } from "../utils/image-helpers.tsx";
 
 type Item = api.Item;
 
@@ -15,6 +15,9 @@ interface ItemListProps {
 
 export const ItemList = ({ user, onItemClick }: ItemListProps) => {
     const [items, setItems] = useState<Item[]>([]);
+    const [followingItems, setFollowingItems] = useState<Item[]>([]); // 💡 フォロー中ユーザーの出品
+    const [recommendedUsers, setRecommendedUsers] = useState<User[]>([]); // 💡 おすすめアカウント
+    const [categoryRecommendedItems, setCategoryRecommendedItems] = useState<Item[]>([]); // 💡 カテゴリレコメンド
     const [loading, setLoading] = useState(true);
     const [selectedCondition, setSelectedCondition] = useState<string>('');
     const [categoriesMeta, setCategoriesMeta] = useState<api.Category[]>([]);
@@ -23,18 +26,44 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
     const keyword = searchParams.get('q') || '';
     const categoryQuery = searchParams.get('cat');
 
     const currentUserID = user ? user.id : 0;
 
     const currentCategoryName = useMemo(() => {
-        if (!categoryQuery) return keyword ? `「${keyword}」の検索結果` : "おすすめ商品";
+        if (!categoryQuery) return keyword ? `「${keyword}」の検索結果` : "すべての商品";
         const catId = Number(categoryQuery);
         const cat = categoriesMeta.find(c => c.id === catId);
         return cat ? cat.name : "カテゴリー商品";
     }, [categoryQuery, categoriesMeta, keyword]);
 
+    // 💡 パーソナライズデータの取得
+    useEffect(() => {
+        (async () => {
+            if (!user) {
+                setFollowingItems([]);
+                setRecommendedUsers([]);
+                setCategoryRecommendedItems([]);
+                return;
+            }
+            try {
+                const [followingRes, recUsers, recCatItems] = await Promise.all([
+                    api.fetchFollowingItems(user.id),
+                    api.fetchRecommendedUsers(user.id),
+                    api.fetchCategoryRecommendations(user.id)
+                ]);
+                setFollowingItems(followingRes || []);
+                setRecommendedUsers(recUsers || []);
+                setCategoryRecommendedItems(recCatItems || []);
+            } catch (error) {
+                console.error("Failed to fetch personalized data:", error);
+            }
+        })();
+    }, [user]);
+
+    // 既存のメタデータ取得
     useEffect(() => {
         (async () => {
             try {
@@ -50,6 +79,7 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
         })();
     }, []);
 
+    // 既存の商品一覧取得
     useEffect(() => {
         (async () => {
             setLoading(true);
@@ -81,17 +111,51 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
 
     return (
         <Box sx={{ pb: 8 }}>
-            <Box sx={{ mb: 3, px: { xs: 2, md: 0 } }}>
+            {/* 💡 検索時やカテゴリ選択時以外にパーソナライズセクションを表示 */}
+            {!keyword && !categoryQuery && user && (
+                <Box sx={{ mb: 4 }}>
+                    {/* 1. フォローしているアカウントの出品 */}
+                    {followingItems.length > 0 && (
+                        <SectionWrapper title="フォロー中のアカウントの新着アイテム">
+                            <HorizontalScrollBox items={followingItems} onItemClick={onItemClick} />
+                        </SectionWrapper>
+                    )}
+
+                    {/* 2. おすすめのアカウント */}
+                    {recommendedUsers.length > 0 && (
+                        <SectionWrapper title="おすすめのアカウント">
+                            <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { display: 'none' } }}>
+                                {recommendedUsers.map(u => (
+                                    <Box key={u.id} onClick={() => navigate(`/user/${u.id}`)} sx={{ textAlign: 'center', cursor: 'pointer', minWidth: 90 }}>
+                                        <Avatar src={u.icon_url} sx={{ width: 64, height: 64, mx: 'auto', mb: 1, border: '1px solid #eee' }} />
+                                        <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }} noWrap>
+                                            {u.username}
+                                        </Typography>
+                                    </Box>
+                                ))}
+                            </Box>
+                        </SectionWrapper>
+                    )}
+
+                    {/* 3. 最近の傾向からのおすすめ（カテゴリベース） */}
+                    {categoryRecommendedItems.length > 0 && (
+                        <SectionWrapper title="最近のチェックに基づいたおすすめ">
+                            <HorizontalScrollBox items={categoryRecommendedItems} onItemClick={onItemClick} />
+                        </SectionWrapper>
+                    )}
+
+                    {/* 最近チェックした商品 (既存) */}
+                    <RecentItemsDisplay currentUser={user} onItemClick={onItemClick} />
+                </Box>
+            )}
+
+            <Box sx={{ mb: 3, px: { xs: 2, md: 0 }, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: 1 }}>
                     {currentCategoryName}
                 </Typography>
-                {keyword && categoryQuery && (
-                    <Typography variant="caption" color="text.secondary">
-                        カテゴリー内検索中
-                    </Typography>
-                )}
             </Box>
 
+            {/* 並び替え・フィルタエリア (既存) */}
             <Box sx={{
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -140,8 +204,6 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                 </Stack>
             </Box>
 
-            {!keyword && !categoryQuery && user && <RecentItemsDisplay currentUser={user} onItemClick={onItemClick} />}
-
             {loading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
                     <CircularProgress color="inherit" size={30} />
@@ -181,13 +243,13 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                                 mb: 1
                             }}>
                                 <img
-                                    src={getFirstImageUrl(item.image_url)} // 💡 修正
+                                    src={getFirstImageUrl(item.image_url)}
                                     alt={item.title}
                                     style={{
                                         position: 'absolute',
                                         top: 0, left: 0,
                                         width: '100%', height: '100%',
-                                        objectFit: "cover" // 💡 枠内に収めて切り抜く
+                                        objectFit: "cover"
                                     }}
                                 />
                                 {item.status === 'SOLD' && (
@@ -235,3 +297,37 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
         </Box>
     );
 };
+
+// ヘルパーコンポーネント: 横スクロールエリア
+const HorizontalScrollBox = ({ items, onItemClick }: { items: Item[], onItemClick: (id: number) => void }) => (
+    <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1, '&::-webkit-scrollbar': { display: 'none' } }}>
+        {items.map(item => (
+            <Box key={item.id} onClick={() => onItemClick(item.id)} sx={{ minWidth: 140, maxWidth: 140, cursor: 'pointer', transition: '0.2s', '&:hover': { opacity: 0.8 } }}>
+                <Box sx={{ width: 140, height: 140, borderRadius: 2, overflow: 'hidden', bgcolor: '#f0f0f0', mb: 1, position: 'relative' }}>
+                    <img src={getFirstImageUrl(item.image_url)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={item.title} />
+                    <Box sx={{
+                        position: 'absolute',
+                        bottom: 4, left: 0,
+                        bgcolor: 'rgba(0,0,0,0.7)',
+                        color: 'white',
+                        px: 0.8, py: 0.2,
+                        borderTopRightRadius: 4,
+                        borderBottomRightRadius: 4,
+                        fontSize: '0.75rem',
+                        fontWeight: 700
+                    }}>
+                        ¥{item.price.toLocaleString()}
+                    </Box>
+                </Box>
+                <Typography variant="caption" noWrap sx={{ display: 'block', fontWeight: 'bold' }}>{item.title}</Typography>
+            </Box>
+        ))}
+    </Box>
+);
+
+const SectionWrapper = ({ title, children }: { title: string, children: React.ReactNode }) => (
+    <Box sx={{ mb: 4 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5, fontSize: '1rem' }}>{title}</Typography>
+        {children}
+    </Box>
+);

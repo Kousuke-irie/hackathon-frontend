@@ -15,6 +15,7 @@ import logoImg from "../assets/logo.png";
 import {useNotifications} from "../hooks/useNotifications.tsx";
 import ExploreIcon from '@mui/icons-material/Explore';
 import ForumIcon from '@mui/icons-material/Forum';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 
 interface NavbarProps {
     currentUser: User | null;
@@ -135,6 +136,15 @@ export const Navbar = ({ currentUser, onLogin, onLogout }: NavbarProps) => {
 
                                 <IconButton
                                     color="inherit"
+                                    onClick={() => navigate('/messages')}
+                                    sx={{ flexDirection: 'column' }}
+                                >
+                                    <ChatBubbleOutlineIcon />
+                                    <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>メッセージ</Typography>
+                                </IconButton>
+
+                                <IconButton
+                                    color="inherit"
                                     component={RouterLink}
                                     to="/mypage/likes"
                                     sx={{ display: { xs: 'none', md: 'inline-flex' }, flexDirection: 'column' }}
@@ -167,7 +177,7 @@ export const Navbar = ({ currentUser, onLogin, onLogout }: NavbarProps) => {
                                     slotProps={{ paper: { sx: { width: 220, mt: 1.5, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' } } }}
                                 >
                                     <MenuItem component={RouterLink} to="/mypage" onClick={handleMenuClose}>マイページ</MenuItem>
-                                    <MenuItem component={RouterLink} to="/profile" onClick={handleMenuClose}>プロフィール設定</MenuItem>
+                                    <MenuItem component={RouterLink} to="/mypage/profile" onClick={handleMenuClose}>プロフィール設定</MenuItem>
                                     <Divider />
                                     <MenuItem component={RouterLink} to="/mypage/listings" onClick={handleMenuClose}>出品した商品</MenuItem>
                                     <MenuItem component={RouterLink} to="/mypage/purchases" onClick={handleMenuClose}>購入した商品</MenuItem>

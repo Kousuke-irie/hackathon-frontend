@@ -138,6 +138,15 @@ export interface ItemListResponse {
     // 必要に応じて total_count などを追加
 }
 
+export interface Review {
+    id: number;
+    rating: 'GOOD' | 'NORMAL' | 'BAD';
+    content: string;
+    created_at: string;
+    reviewer: User;
+    item: Item;
+}
+
 // --- 3. API通信関数 ---
 
 // ------------------------------------
@@ -155,6 +164,43 @@ export const loginUser = async (idToken: string): Promise<LoginResponse> => {
     return response.data;
 };
 
+/** ユーザー情報を取得 (公開プロフィール用) */
+export const fetchUserDetail = async (userId: number): Promise<User> => {
+    const response = await client.get(`/users/${userId}`);
+    return response.data.user;
+};
+
+/** プロフィール情報を更新 (住所や生年月日を含む) */
+export const updateProfile = async (data: Partial<User> & { id: number }): Promise<User> => {
+    const response = await client.put('/users/me', data);
+    return response.data.user;
+};
+
+export const toggleFollow = async (myId: number, targetId: number) => {
+    const response = await client.post(`/users/${targetId}/follow`, {}, {
+        headers: { 'X-User-ID': myId.toString() }
+    });
+    return response.data;
+};
+
+export const fetchFollows = async (userId: number, mode: 'following' | 'followers'): Promise<User[]> => {
+    const response = await client.get(`/users/${userId}/follows?mode=${mode}`);
+    return response.data.users;
+};
+
+export const checkIsFollowing = async (myId: number, targetId: number): Promise<{is_following: boolean}> => {
+    const response = await client.get(`/users/${targetId}/is-following`, {
+        headers: { 'X-User-ID': myId.toString() }
+    });
+    return response.data;
+};
+
+/** ユーザーの評価一覧を取得 */
+export const fetchUserReviews = async (userId: number): Promise<Review[]> => {
+    const response = await client.get(`/users/${userId}/reviews`);
+    return response.data.reviews || [];
+};
+
 // ------------------------------------
 // マイページ
 // ------------------------------------
@@ -165,6 +211,21 @@ export const fetchLikedItems = async (userId: number) : Promise<Item[]> => {
     });
     return response.data.items;
 }
+
+export const fetchFollowingItems = async (userId: number): Promise<Item[]> => {
+    const res = await client.get('/my/following-items', { headers: { 'X-User-ID': userId.toString() } });
+    return res.data.items;
+};
+
+export const fetchRecommendedUsers = async (userId: number): Promise<User[]> => {
+    const res = await client.get('/my/recommend-users', { headers: { 'X-User-ID': userId.toString() } });
+    return res.data.users;
+};
+
+export const fetchCategoryRecommendations = async (userId: number): Promise<Item[]> => {
+    const res = await client.get('/my/category-recommendations', { headers: { 'X-User-ID': userId.toString() } });
+    return res.data.items;
+};
 
 // ------------------------------------
 // 商品取得・一覧
@@ -251,7 +312,12 @@ export const fetchMySalesHistory = async (userId: number): Promise<Transaction[]
     });
     return response.data.transactions;
 };
-
+/** 商品の閲覧をバックエンドに記録 */
+export const recordItemView = async (itemId: number, userId: number): Promise<void> => {
+    await client.post(`/items/${itemId}/view`, {}, {
+        headers: { 'X-User-ID': userId.toString() }
+    });
+};
 // ------------------------------------
 // 出品・AI解析
 // ------------------------------------
@@ -360,6 +426,22 @@ export const fetchComments = async (itemId: number): Promise<Comment[]> => {
 export const postComment = async (itemId: number, userId: number, content: string): Promise<Comment> => {
     const response = await client.post(`/items/${itemId}/comments`, { user_id: userId, content });
     return response.data.comment;
+};
+
+export const fetchChatHistory = async (myId: number, targetId: number) => {
+    const res = await client.get(`/chats/${targetId}`, { headers: { 'X-User-ID': myId.toString() } });
+    return res.data.messages;
+};
+
+export const fetchChatThreads = async (myId: number) => {
+    const res = await client.get('/chats/threads', { headers: { 'X-User-ID': myId.toString() } });
+    return res.data.threads;
+};
+
+export const sendMessage = async (myId: number, receiverId: number, content: string) => {
+    return await client.post('/chats', { receiver_id: receiverId, content }, {
+        headers: { 'X-User-ID': myId.toString() }
+    });
 };
 
 

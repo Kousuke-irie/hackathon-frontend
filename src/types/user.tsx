@@ -1,8 +1,13 @@
 export interface User {
     id: number;
-    firebase_uid: string;
     username: string;
     email: string;
     icon_url: string;
-    bio: string;
+    bio?: string;
+    address?: string;
+    birthdate?: string;
+    following_count?: number;
+    follower_count?: number;
+    created_at: string;
+    updated_at: string;
 }
