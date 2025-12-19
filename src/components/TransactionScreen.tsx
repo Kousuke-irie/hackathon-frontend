@@ -84,14 +84,14 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
     if (loading) return <Typography align="center" sx={{ mt: 5 }}>読み込み中...</Typography>;
     if (!tx) return <Typography align="center" sx={{ mt: 5 }}>取引情報が見つかりません</Typography>;
 
-    const isSeller = tx.seller_id === currentUser.id;
+    // 💡 修正: 型の不一致を防ぐため Number() で確実に数値として比較する
+    const isSeller = Number(tx.seller_id) === Number(currentUser.id);
     const currentStatus = tx.Status;
 
     return (
         <Box sx={{ maxWidth: 600, mx: 'auto', mt: 4, p: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h5" sx={{ fontWeight: 800 }}>取引画面</Typography>
-                {/* 💡 役割を明示するバッジを追加 */}
                 <Chip
                     icon={isSeller ? <StorefrontIcon /> : <PersonIcon />}
                     label={isSeller ? "あなたは出品者です" : "あなたは購入者です"}
@@ -115,8 +115,8 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
                 ) : (
                     <Box sx={{ textAlign: 'center', py: 1 }}>
                         {isSeller ? (
-                            /* --- 出品者向けのUI --- */
                             <Box>
+                                {/* 💡 修正: ステータス判定を確実に実行 */}
                                 {currentStatus === 'PURCHASED' && (
                                     <>
                                         <Typography variant="body1" sx={{ mb: 2, fontWeight: 700 }}>
@@ -146,7 +146,6 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
                                 )}
                             </Box>
                         ) : (
-                            /* --- 購入者向けのUI --- */
                             <Box>
                                 {currentStatus === 'PURCHASED' && (
                                     <Typography color="text.secondary">
@@ -182,19 +181,12 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
                 )}
             </Paper>
 
-            {/* 商品情報カード */}
             <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, ml: 1 }}>商品情報</Typography>
             <Paper
                 onClick={() => navigate(`/items/${tx.item.id}`)}
                 sx={{
-                    p: 2,
-                    borderRadius: 3,
-                    cursor: 'pointer',
-                    border: '1px solid #eee',
-                    boxShadow: 'none',
-                    display: 'flex',
-                    gap: 2,
-                    transition: '0.2s',
+                    p: 2, borderRadius: 3, cursor: 'pointer', border: '1px solid #eee',
+                    boxShadow: 'none', display: 'flex', gap: 2, transition: '0.2s',
                     '&:hover': { bgcolor: '#f5f5f5', borderColor: '#1a1a1a' }
                 }}
             >
@@ -211,7 +203,6 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
                 </Box>
             </Paper>
 
-            {/* 評価モーダル */}
             <Dialog
                 open={reviewModalOpen}
                 onClose={() => setReviewModalOpen(false)}
@@ -220,9 +211,6 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
                 <DialogTitle sx={{ fontWeight: 800, textAlign: 'center' }}>受け取り評価</DialogTitle>
                 <Box component="form" onSubmit={handleReviewSubmit}>
                     <DialogContent sx={{ textAlign: 'center' }}>
-                        <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-                            商品の到着を確認しましたか？<br />満足度を選択してコメントを送信してください。
-                        </Typography>
                         <Rating
                             value={reviewRating}
                             onChange={(_e, newValue) => setReviewRating(newValue || 5)}
