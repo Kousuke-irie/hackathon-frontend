@@ -138,6 +138,15 @@ export interface ItemListResponse {
     // 必要に応じて total_count などを追加
 }
 
+export interface Review {
+    id: number;
+    rating: 'GOOD' | 'NORMAL' | 'BAD';
+    content: string;
+    created_at: string;
+    reviewer: User;
+    item: Item;
+}
+
 // --- 3. API通信関数 ---
 
 // ------------------------------------
@@ -184,6 +193,12 @@ export const checkIsFollowing = async (myId: number, targetId: number): Promise<
         headers: { 'X-User-ID': myId.toString() }
     });
     return response.data;
+};
+
+/** ユーザーの評価一覧を取得 */
+export const fetchUserReviews = async (userId: number): Promise<Review[]> => {
+    const response = await client.get(`/users/${userId}/reviews`);
+    return response.data.reviews || [];
 };
 
 // ------------------------------------
@@ -297,7 +312,12 @@ export const fetchMySalesHistory = async (userId: number): Promise<Transaction[]
     });
     return response.data.transactions;
 };
-
+/** 商品の閲覧をバックエンドに記録 */
+export const recordItemView = async (itemId: number, userId: number): Promise<void> => {
+    await client.post(`/items/${itemId}/view`, {}, {
+        headers: { 'X-User-ID': userId.toString() }
+    });
+};
 // ------------------------------------
 // 出品・AI解析
 // ------------------------------------
@@ -406,6 +426,22 @@ export const fetchComments = async (itemId: number): Promise<Comment[]> => {
 export const postComment = async (itemId: number, userId: number, content: string): Promise<Comment> => {
     const response = await client.post(`/items/${itemId}/comments`, { user_id: userId, content });
     return response.data.comment;
+};
+
+export const fetchChatHistory = async (myId: number, targetId: number) => {
+    const res = await client.get(`/chats/${targetId}`, { headers: { 'X-User-ID': myId.toString() } });
+    return res.data.messages;
+};
+
+export const fetchChatThreads = async (myId: number) => {
+    const res = await client.get('/chats/threads', { headers: { 'X-User-ID': myId.toString() } });
+    return res.data.threads;
+};
+
+export const sendMessage = async (myId: number, receiverId: number, content: string) => {
+    return await client.post('/chats', { receiver_id: receiverId, content }, {
+        headers: { 'X-User-ID': myId.toString() }
+    });
 };
 
 

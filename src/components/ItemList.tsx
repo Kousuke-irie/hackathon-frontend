@@ -116,7 +116,7 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                 <Box sx={{ mb: 4 }}>
                     {/* 1. フォローしているアカウントの出品 */}
                     {followingItems.length > 0 && (
-                        <SectionWrapper title="フォロー中の新着アイテム">
+                        <SectionWrapper title="フォロー中のアカウントの新着アイテム">
                             <HorizontalScrollBox items={followingItems} onItemClick={onItemClick} />
                         </SectionWrapper>
                     )}

@@ -29,6 +29,8 @@ import {MyListPage} from "./components/MyListPage.tsx";
 import {CategoryGallery} from "./components/CategoryGallery.tsx";
 import {PublicProfile} from "./components/PublicProfile.tsx";
 import {LoginModal} from "./components/LoginModal.tsx";
+import {ChatList} from "./components/ChatList.tsx";
+import {ChatScreen} from "./components/ChatScreen.tsx";
 
 import type { User } from './types/user';
 import {FollowListPage} from "./components/FollowListPage.tsx";
@@ -242,6 +244,8 @@ function AppContent() {
                                 <Route path="/mylist" element={<MyListPage user={user!} />} />
                                 <Route path="/user/:userId" element={<PublicProfile currentUser={user} />} />
                                 <Route path="/user/:userId/follows" element={<FollowListPage />} />
+                                <Route path="/messages" element={<ChatList currentUser={user!} />} />
+                                <Route path="/chat/:userId" element={<ChatScreen currentUser={user!} />} />
                             </>
                         ) : (
                             <Route path="*" element={<Navigate to="/" replace />} />

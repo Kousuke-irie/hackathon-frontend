@@ -66,6 +66,7 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
                 setImages(parseImageUrls(itemData.image_url));
                 addRecentView(itemId);
                 if (currentUser) {
+                    api.recordItemView(itemId, currentUser.id).catch(console.error);
                     const likedStatus = await api.checkItemLiked(currentUser.id, itemId);
                     setIsLiked(likedStatus.is_liked);
                 }
