@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { Box, TextField, Button, Avatar, Typography, Paper, Stack } from "@mui/material";
+import { useState, useRef } from "react";
+import { Box, TextField, Button, Avatar, Typography, Paper, Stack, CircularProgress } from "@mui/material";
 import * as api from "../services/api";
 import type { User } from "../types/user";
+import axios from "axios";
 
 interface UserProfileProps {
     user: User;
@@ -13,7 +14,35 @@ export const UserProfile = ({ user, onUpdate }: UserProfileProps) => {
     const [bio, setBio] = useState(user.bio || "");
     const [address, setAddress] = useState(user.address || "");
     const [birthdate, setBirthdate] = useState(user.birthdate || "");
+    const [iconUrl, setIconUrl] = useState(user.icon_url || "");
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            // 1. 署名付きURLを取得
+            const { uploadUrl, imageUrl } = await api.getGcsUploadUrl(file.name, user.id, file.type);
+
+            // 2. GCSへ直接アップロード
+            await axios.put(uploadUrl, file, {
+                headers: { 'Content-Type': file.type }
+            });
+
+            // 3. プレビュー用のURLを更新
+            setIconUrl(imageUrl);
+        } catch (error) {
+            console.error("Image upload failed:", error);
+            alert("画像のアップロードに失敗しました");
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -23,7 +52,8 @@ export const UserProfile = ({ user, onUpdate }: UserProfileProps) => {
                 username,
                 bio,
                 address,
-                birthdate
+                birthdate,
+                icon_url: iconUrl
             });
             onUpdate(updated);
             alert("プロフィールを更新しました");
@@ -45,7 +75,23 @@ export const UserProfile = ({ user, onUpdate }: UserProfileProps) => {
                     {/* Gridの代わりにBoxのFlexboxを使用 */}
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                         <Avatar src={user.icon_url} sx={{ width: 80, height: 80, mr: 2 }} />
-                        <Button variant="outlined" size="small">画像を変更</Button>
+                        <Box>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUploading}
+                            >
+                                {isUploading ? <CircularProgress size={20} /> : "画像を変更"}
+                            </Button>
+                            <input
+                                type="file"
+                                hidden
+                                ref={fileInputRef}
+                                accept="image/*"
+                                onChange={handleImageChange}
+                            />
+                        </Box>
                     </Box>
 
                     <Stack spacing={3}>

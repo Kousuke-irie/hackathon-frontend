@@ -167,6 +167,25 @@ export const updateProfile = async (data: Partial<User> & { id: number }): Promi
     return response.data.user;
 };
 
+export const toggleFollow = async (myId: number, targetId: number) => {
+    const response = await client.post(`/users/${targetId}/follow`, {}, {
+        headers: { 'X-User-ID': myId.toString() }
+    });
+    return response.data;
+};
+
+export const fetchFollows = async (userId: number, mode: 'following' | 'followers'): Promise<User[]> => {
+    const response = await client.get(`/users/${userId}/follows?mode=${mode}`);
+    return response.data.users;
+};
+
+export const checkIsFollowing = async (myId: number, targetId: number): Promise<{is_following: boolean}> => {
+    const response = await client.get(`/users/${targetId}/is-following`, {
+        headers: { 'X-User-ID': myId.toString() }
+    });
+    return response.data;
+};
+
 // ------------------------------------
 // マイページ
 // ------------------------------------

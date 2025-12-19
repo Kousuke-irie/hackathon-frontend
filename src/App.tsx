@@ -31,6 +31,7 @@ import {PublicProfile} from "./components/PublicProfile.tsx";
 import {LoginModal} from "./components/LoginModal.tsx";
 
 import type { User } from './types/user';
+import {FollowListPage} from "./components/FollowListPage.tsx";
 
 // ★ モダン・モノトーンテーマの定義
 const theme = createTheme({
@@ -240,6 +241,7 @@ function AppContent() {
                                 <Route path="/transactions/:txId" element={<TransactionScreen currentUser={user!} />} />
                                 <Route path="/mylist" element={<MyListPage user={user!} />} />
                                 <Route path="/user/:userId" element={<PublicProfile currentUser={user} />} />
+                                <Route path="/user/:userId/follows" element={<FollowListPage />} />
                             </>
                         ) : (
                             <Route path="*" element={<Navigate to="/" replace />} />

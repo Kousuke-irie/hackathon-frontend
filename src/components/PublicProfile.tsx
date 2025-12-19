@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Box, Avatar, Typography, Button, Paper, Tabs, Tab } from "@mui/material"; // Gridを削除
+import { Box, Avatar, Typography, Button, Paper, Tabs, Tab } from "@mui/material";
 import * as api from "../services/api";
 import type { User } from "../types/user";
 import { getFirstImageUrl } from "../utils/image-helpers";
@@ -9,6 +9,8 @@ export const PublicProfile = ({ currentUser }: { currentUser: User | null }) => 
     const { userId } = useParams();
     const navigate = useNavigate();
     const [user, setUser] = useState<User | null>(null);
+    const [isFollowing, setIsFollowing] = useState(false);
+    // 💡 未使用の _setItems を setItems に修正し、後続の処理で使用する
     const [items, setItems] = useState<api.Item[]>([]);
     const [tab, setTab] = useState(0);
 
@@ -18,13 +20,35 @@ export const PublicProfile = ({ currentUser }: { currentUser: User | null }) => 
             try {
                 const userData = await api.fetchUserDetail(Number(userId));
                 setUser(userData);
+
+                // 💡 出品アイテムを実際に取得してステートにセットする
                 const response = await api.fetchItemList({ seller_id: Number(userId) } as any);
                 setItems(response.items || []);
+
+                if (currentUser && currentUser.id !== Number(userId)) {
+                    const res = await api.checkIsFollowing(currentUser.id, Number(userId));
+                    setIsFollowing(res.is_following);
+                }
             } catch (error) {
-                console.error("Failed to fetch profile:", error);
+                console.error("Failed to fetch profile data:", error);
             }
         })();
-    }, [userId]);
+    }, [userId, currentUser]);
+
+    const handleFollowClick = async () => {
+        if (!currentUser) return alert("ログインが必要です");
+        if (!user) return;
+        try {
+            const res = await api.toggleFollow(currentUser.id, user.id);
+            setIsFollowing(res.status === 'followed');
+
+            // 💡 画面上のフォロワー数をリアルタイムに更新（再取得）
+            const updatedUserData = await api.fetchUserDetail(user.id);
+            setUser(updatedUserData);
+        } catch (error) {
+            console.error("Follow action failed:", error);
+        }
+    };
 
     if (!user) return <Typography sx={{ p: 4, textAlign: 'center' }}>読み込み中...</Typography>;
 
@@ -39,16 +63,39 @@ export const PublicProfile = ({ currentUser }: { currentUser: User | null }) => 
                     <Typography variant="h6" sx={{ fontWeight: 800 }}>{user.username}</Typography>
                     <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
                         <Typography variant="body2" color="text.secondary">出品数 <b>{items.length}</b></Typography>
-                        <Typography variant="body2" color="text.secondary">フォロワー <b>0</b></Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{ cursor: 'pointer', '&:hover': { opacity: 0.7 } }}
+                            onClick={() => navigate(`/user/${userId}/follows?mode=following`)}
+                        >
+                            フォロー中 <b>{user.following_count || 0}</b>
+                        </Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{ cursor: 'pointer', '&:hover': { opacity: 0.7 } }}
+                            onClick={() => navigate(`/user/${userId}/follows?mode=followers`)}
+                        >
+                            フォロワー <b>{user.follower_count || 0}</b>
+                        </Typography>
                     </Box>
                 </Box>
+
+                {/* 💡 ボタン表示ロジックの重複を整理 */}
                 {isOwnProfile ? (
                     <Button variant="outlined" sx={{ borderRadius: 20 }} onClick={() => navigate('/profile')}>
                         編集
                     </Button>
                 ) : (
-                    <Button variant="contained" sx={{ borderRadius: 20, bgcolor: '#e91e63' }}>
-                        フォロー
+                    <Button
+                        variant={isFollowing ? "outlined" : "contained"}
+                        sx={{
+                            borderRadius: 20,
+                            bgcolor: isFollowing ? 'transparent' : '#e91e63',
+                            '&:hover': { bgcolor: isFollowing ? 'rgba(0,0,0,0.04)' : '#c2185b' }
+                        }}
+                        onClick={handleFollowClick}
+                    >
+                        {isFollowing ? "フォロー中" : "フォローする"}
                     </Button>
                 )}
             </Box>
@@ -66,12 +113,12 @@ export const PublicProfile = ({ currentUser }: { currentUser: User | null }) => 
                 <Tab label="評価" />
             </Tabs>
 
-            {/* 商品一覧グリッド（Gridの代わりにBoxを使用） */}
+            {/* 商品一覧グリッド */}
             <Box
                 sx={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)', // 1列3等分 (xs=4に相当)
-                    gap: 1, // spacing={1}に相当
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 1,
                 }}
             >
                 {items.map(item => (
