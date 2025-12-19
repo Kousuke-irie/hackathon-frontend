@@ -217,13 +217,13 @@ function AppContent() {
                             <>
                                 <Route path="/mypage" element={<MyPageLayout />}>
                                     <Route index element={<InProgressPurchases user={user} onItemClick={(id) => navigate(`/items/${id}`)} />} />
-                                    <Route path="listings" element={<MyItems user={user} onItemClick={(id) => navigate(`/items/${id}`)} />} />
-                                    <Route path="purchases" element={<PurchaseHistory user={user} onItemClick={(id) => navigate(`/items/${id}`)} />} />
+                                    <Route path="listings" element={<MyItems user={user} onItemClick={(id: number) => {navigate(`/transactions/${id}`);}} />} />
+                                    <Route path="purchases" element={<PurchaseHistory user={user} onItemClick={(txId: number) => navigate(`/transactions/${txId}`)} />} />
                                     <Route path="drafts" element={<DraftsList user={user} onEditDraft={handleEditDraft} />} />
+                                    <Route path="/mylikes" element={<LikedItems user={user} onItemClick={(id:number) => navigate(`/items/${id}`)} />}/>
                                 </Route>
 
                                 <Route path="/profile" element={<UserProfile user={user} onUserUpdate={handleUserUpdate} onLogout={handleLogout}/>}/>
-                                <Route path="/mylikes" element={<LikedItems user={user} onItemClick={(id:number) => navigate(`/items/${id}`)} />}/>
                                 <Route path="/sell" element={<SellItemWrapper user={user} />}/>
                                 <Route path="/sell/edit/:id" element={<SellItemWrapper user={user} />}/>
                                 <Route path="/swipe" element={<SwipeDeck user={user!} />}/>

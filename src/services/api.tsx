@@ -322,6 +322,14 @@ export const fetchTransactionDetail = async (txId: number): Promise<Transaction>
     return response.data.transaction;
 };
 
+/** 自分が販売した取引中の商品一覧を取得 (出品者用) */
+export const fetchMySalesInProgress = async (userId: number): Promise<Transaction[]> => {
+    const response = await client.get(`/my/sales-in-progress`, {
+        headers: { 'X-User-ID': userId.toString() },
+    });
+    return response.data.transactions;
+};
+
 // ------------------------------------
 // コメント
 // ------------------------------------

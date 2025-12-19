@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
 import { Box, Tabs, Tab, Card, CardMedia, CardContent, Typography } from '@mui/material';
+import {getStatusChipProps} from "../utils/transaction-helpers.tsx";
 
 interface MyItemsProps {
     user: User;
@@ -24,16 +25,13 @@ export const MyItems = ({ user, onItemClick }: MyItemsProps) => {
                     setItems(res.filter(i => i.status === 'ON_SALE'));
                     setTransactions([]);
                 } else if (tabValue === 1) {
-                    // 「取引中」: 自分が関わる進行中の取引を取得
-                    // ※本来は「販売した進行中取引」専用APIが理想ですが、既存の進行中APIを活用
-                    const res = await api.fetchInProgressPurchases(user.id);
+                    const res = await api.fetchMySalesInProgress(user.id);
                     setTransactions(res);
                     setItems([]);
                 } else if (tabValue === 2) {
                     // 「売却済み」: 完了した取引履歴を取得
                     const res = await api.fetchPurchaseHistory(user.id);
-                    // 完了または受け取り済みのみフィルタリング（必要に応じて）
-                    setTransactions(res.filter(tx => tx.Status === 'COMPLETED' || tx.Status === 'RECEIVED'));
+                    setTransactions(res.filter(tx => tx.seller_id === user.id && (tx.Status === 'COMPLETED' || tx.Status === 'RECEIVED')));
                     setItems([]);
                 }
             } catch (error) {
@@ -129,7 +127,7 @@ export const MyItems = ({ user, onItemClick }: MyItemsProps) => {
                                         ¥{tx.price_snapshot.toLocaleString()}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
-                                        状態: {tx.Status}
+                                        {getStatusChipProps(tx.Status).label}
                                     </Typography>
                                 </CardContent>
                             </Card>
