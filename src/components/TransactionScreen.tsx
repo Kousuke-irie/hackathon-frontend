@@ -31,17 +31,14 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
     const fetchTransactionData = useCallback(async () => {
         if (!txId) return;
         try {
-            // 注意: API.tsxに1件の取引を取得する fetchTransactionDetail が必要
-            // 現状はないため、履歴からフィルタリングするかAPI追加を想定
-            const history = await api.fetchPurchaseHistory(currentUser.id);
-            const found = history.find(t => t.id === Number(txId));
-            if (found) setTx(found);
+            const data = await api.fetchTransactionDetail(Number(txId));
+            setTx(data);
         } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
         }
-    }, [txId, currentUser.id]);
+    }, [txId]);
 
     useEffect(() => {
         (async () => {
@@ -57,6 +54,7 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
             await fetchTransactionData();
         } catch (error) {
             alert("更新に失敗しました");
+            console.error(error);
         }
     };
 
@@ -110,7 +108,7 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
             <Paper sx={{ p: 2, borderRadius: 2 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>商品情報</Typography>
                 <Box sx={{ display: 'flex', gap: 2 }}>
-                    <img src={tx.item.image_url} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4 }} />
+                    <img src={tx.item.image_url} alt={"商品画像"} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4 }} />
                     <Box>
                         <Typography variant="body1">{tx.item.title}</Typography>
                         <Typography variant="h6">¥{tx.price_snapshot.toLocaleString()}</Typography>

@@ -94,7 +94,7 @@ export const PurchaseHistory = ({ user, onItemClick }: PurchaseHistoryProps) => 
                     return (
                         <Card
                             key={tx.id}
-                            onClick={() =>　onItemClick(tx.id)}
+                            onClick={() => onItemClick(tx.id)}
                             sx={{
                                 display: 'flex',
                                 flexDirection: 'column',

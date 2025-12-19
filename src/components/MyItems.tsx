@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import {useNavigate} from "react-router-dom";
 import * as api from "../services/api";
 import type { User } from "../types/user";
 import { Box, Tabs, Tab, Card, CardMedia, CardContent, Typography } from '@mui/material';
@@ -6,14 +7,14 @@ import {getStatusChipProps} from "../utils/transaction-helpers.tsx";
 
 interface MyItemsProps {
     user: User;
-    onItemClick: (id: number) => void;
 }
 
-export const MyItems = ({ user, onItemClick }: MyItemsProps) => {
+export const MyItems = ({ user}: MyItemsProps) => {
     const [items, setItems] = useState<api.Item[]>([]);
     const [transactions, setTransactions] = useState<api.Transaction[]>([]);
     const [tabValue, setTabValue] = useState(0); // 0: 出品中, 1: 取引中, 2: 売却済み
     const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         (async () => {
@@ -73,7 +74,7 @@ export const MyItems = ({ user, onItemClick }: MyItemsProps) => {
                     {tabValue === 0 && items.map((item) => (
                         <Box key={item.id}>
                             <Card
-                                onClick={() => onItemClick(item.id)} // 商品詳細画面へ
+                                onClick={() => navigate(`/items/${item.id}`)} // 商品詳細画面へ
                                 sx={{
                                     cursor: 'pointer',
                                     height: '100%',
@@ -104,7 +105,7 @@ export const MyItems = ({ user, onItemClick }: MyItemsProps) => {
                     {tabValue !== 0 && transactions.map((tx) => (
                         <Box key={tx.id}>
                             <Card
-                                onClick={() => onItemClick(tx.id)} // 取引画面 (TransactionScreen) へ
+                                onClick={() => navigate(`/transactions/${tx.id}`)} // 取引画面 (TransactionScreen) へ
                                 sx={{
                                     cursor: 'pointer',
                                     height: '100%',

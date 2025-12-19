@@ -7,7 +7,7 @@ export const MyPageLayout = () => {
 
     const menuItems = [
         { label: 'マイページトップ', path: '/mypage' },
-        { label: 'いいね！一覧', path: '/mylikes' },
+        { label: 'いいね！一覧', path: '/mypage/likes' },
         { label: '出品した商品', path: '/mypage/listings' },
         { label: '購入した商品', path: '/mypage/purchases' },
         { label: '下書き一覧', path: '/mypage/drafts' },
@@ -27,7 +27,7 @@ export const MyPageLayout = () => {
                 selected={location.pathname === path}
                 sx={{ borderBottom: '1px solid #f5f5f5', py: 1.5 }}
             >
-                <ListItemText primary={label} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: location.pathname === path ? 700 : 500 }} />
+                <ListItemText primary={label} slotProps={{primary: {sx: {fontSize: '0.9rem', fontWeight: location.pathname === path ? 700 : 500}}}} />
                 <ArrowForwardIosIcon sx={{ fontSize: '0.7rem', color: '#ccc' }} />
             </ListItemButton>
         </ListItem>
