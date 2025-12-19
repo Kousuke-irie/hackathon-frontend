@@ -203,7 +203,7 @@ export const fetchFollowingItems = async (userId: number): Promise<Item[]> => {
 };
 
 export const fetchRecommendedUsers = async (userId: number): Promise<User[]> => {
-    const res = await client.get('/my/recommended-users', { headers: { 'X-User-ID': userId.toString() } });
+    const res = await client.get('/my/recommend-users', { headers: { 'X-User-ID': userId.toString() } });
     return res.data.users;
 };
 
