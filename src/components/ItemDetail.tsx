@@ -294,7 +294,19 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
                         </Grid>
                     </Box>
 
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 4 }}>
+                    <Box
+                        onClick={() => navigate(`/user/${item.seller.id}`)} // 💡 プロフィール画面へ遷移
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                            mt: 4,
+                            cursor: 'pointer', // 💡 マウスホバーでポインターにする
+                            p: 1,
+                            borderRadius: 2,
+                            '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' } // 💡 軽くホバーエフェクトを追加
+                        }}
+                    >
                         <Avatar src={item.seller.icon_url} alt={item.seller.username} />
                         <Box>
                             <Typography variant="caption" color="text.secondary">出品者</Typography>
