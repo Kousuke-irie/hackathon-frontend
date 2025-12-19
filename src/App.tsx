@@ -220,7 +220,7 @@ function AppContent() {
                                     <Route path="listings" element={<MyItems user={user} onItemClick={(id: number) => {navigate(`/transactions/${id}`);}} />} />
                                     <Route path="purchases" element={<PurchaseHistory user={user} onItemClick={(txId: number) => navigate(`/transactions/${txId}`)} />} />
                                     <Route path="drafts" element={<DraftsList user={user} onEditDraft={handleEditDraft} />} />
-                                    <Route path="/mylikes" element={<LikedItems user={user} onItemClick={(id:number) => navigate(`/items/${id}`)} />}/>
+                                    <Route path="likes" element={<LikedItems user={user} onItemClick={(id:number) => navigate(`/items/${id}`)} />}/>
                                 </Route>
 
                                 <Route path="/profile" element={<UserProfile user={user} onUserUpdate={handleUserUpdate} onLogout={handleLogout}/>}/>

@@ -134,7 +134,7 @@ export const Navbar = ({ currentUser, onLogin, onLogout }: NavbarProps) => {
                                 <IconButton
                                     color="inherit"
                                     component={RouterLink}
-                                    to="/mylikes"
+                                    to="/mypage/likes"
                                     sx={{ display: { xs: 'none', md: 'inline-flex' }, flexDirection: 'column' }}
                                 >
                                     <FavoriteBorderIcon />
