@@ -84,6 +84,15 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
     if (loading) return <Typography align="center" sx={{ mt: 5 }}>読み込み中...</Typography>;
     if (!tx) return <Typography align="center" sx={{ mt: 5 }}>取引情報が見つかりません</Typography>;
 
+    // 💡 デバッグ用ログ: これを return の前に入れてください
+    console.log("Debug Transaction Data:", {
+        tx_seller_id: tx.seller_id,
+        tx_seller_id_type: typeof tx.seller_id,
+        current_user_id: currentUser.id,
+        current_user_id_type: typeof currentUser.id,
+        status: tx.Status
+    });
+
     // 💡 修正: 型の不一致を防ぐため Number() で確実に数値として比較する
     const isSeller = Number(tx.seller_id) === Number(currentUser.id);
     const currentStatus = tx.Status;
