@@ -71,7 +71,7 @@ export const InProgressPurchases = ({ user, onItemClick }: InProgressPurchasesPr
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                    ¥{tx.price_snapshot.toLocaleString()}
+                                    ¥{(tx.price_snapshot || tx.item.price).toLocaleString()}
                                 </Typography>
                                 <Chip
                                     label={getStatusChipProps(tx.status).label}

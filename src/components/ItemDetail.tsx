@@ -133,7 +133,7 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
     const handleShareToCommunity = async (communityId: number) => {
         if (!currentUser) return;
         try {
-            await api.postCommunityPost(communityId, currentUser.id, "この商品が気になります！", itemId);
+            await api.postCommunityPost(communityId, currentUser.id, "商品を共有しました", itemId);
             alert("コミュニティに共有しました");
             setShareModalOpen(false);
         } catch (error) {

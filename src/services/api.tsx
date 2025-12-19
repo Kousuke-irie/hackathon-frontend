@@ -242,6 +242,14 @@ export const fetchPurchaseHistory = async (userId: number): Promise<Transaction[
     return response.data.transactions;
 };
 
+/** 自分が販売し、完了した取引一覧を取得 */
+export const fetchMySalesHistory = async (userId: number): Promise<Transaction[]> => {
+    const response = await client.get('/my/sales-history', {
+        headers: { 'X-User-ID': userId.toString() },
+    });
+    return response.data.transactions;
+};
+
 // ------------------------------------
 // 出品・AI解析
 // ------------------------------------

@@ -31,10 +31,9 @@ export const MyItems = ({ user}: MyItemsProps) => {
                     setTransactions(res);
                     setItems([]);
                 } else if (tabValue === 2) {
-                    // 売却済み: 💡 拡張したAPIで status=SOLD を取得
-                    const res = await api.fetchMyItems(user.id, 'SOLD');
-                    setItems(res);
-                    setTransactions([]);
+                    const res = await api.fetchMySalesHistory(user.id);
+                    setTransactions(res);
+                    setItems([]);
                 }
             } catch (error) {
                 console.error("Failed to fetch my items/transactions:", error);
