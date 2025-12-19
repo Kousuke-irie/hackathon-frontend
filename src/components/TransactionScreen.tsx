@@ -28,7 +28,9 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
     const steps = ['購入完了', '発送待ち', '受取評価待ち', '取引完了'];
 
     const getActiveStep = (status: string) => {
-        switch (status) {
+        // 💡 statusは大文字小文字どちらが来ても動くように正規化
+        const s = status?.toUpperCase();
+        switch (s) {
             case 'PURCHASED': return 1;
             case 'SHIPPED': return 2;
             case 'RECEIVED':
@@ -84,18 +86,9 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
     if (loading) return <Typography align="center" sx={{ mt: 5 }}>読み込み中...</Typography>;
     if (!tx) return <Typography align="center" sx={{ mt: 5 }}>取引情報が見つかりません</Typography>;
 
-    // 💡 デバッグ用ログ: これを return の前に入れてください
-    console.log("Debug Transaction Data:", {
-        tx_seller_id: tx.seller_id,
-        tx_seller_id_type: typeof tx.seller_id,
-        current_user_id: currentUser.id,
-        current_user_id_type: typeof currentUser.id,
-        status: tx.Status
-    });
-
-    // 💡 修正: 型の不一致を防ぐため Number() で確実に数値として比較する
+    // 💡 判定ロジックを強化: 大文字の 'Status' を優先参照し、確実に大文字に変換する
+    const currentStatus = (tx.Status || (tx as any).status || "").toUpperCase();
     const isSeller = Number(tx.seller_id) === Number(currentUser.id);
-    const currentStatus = tx.Status;
 
     return (
         <Box sx={{ maxWidth: 600, mx: 'auto', mt: 4, p: 2 }}>
@@ -125,7 +118,6 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
                     <Box sx={{ textAlign: 'center', py: 1 }}>
                         {isSeller ? (
                             <Box>
-                                {/* 💡 修正: ステータス判定を確実に実行 */}
                                 {currentStatus === 'PURCHASED' && (
                                     <>
                                         <Typography variant="body1" sx={{ mb: 2, fontWeight: 700 }}>
