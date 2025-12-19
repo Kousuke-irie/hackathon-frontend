@@ -3,6 +3,7 @@ import * as api from "../services/api";
 import { getRecentViews } from '../services/recent-views'; // LocalStorageからIDを取得
 import { Box, Typography, CircularProgress } from '@mui/material';
 import type {User} from "../types/user";
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 interface RecentItemsDisplayProps {
     onItemClick: (id: number) => void;
@@ -76,7 +77,7 @@ export const RecentItemsDisplay = ({ onItemClick, currentUser }: RecentItemsDisp
                             bgcolor: '#f5f5f5',
                             mb: 1
                         }}>
-                            <img src={item.image_url} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={getFirstImageUrl(item.image_url)} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </Box>
                         <Typography variant="caption" noWrap sx={{ display: 'block', fontWeight: 600 }}>
                             {item.title}

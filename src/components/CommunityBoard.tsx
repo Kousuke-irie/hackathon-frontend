@@ -14,6 +14,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 interface Post {
     id: number;
@@ -315,7 +316,7 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
                                 }}
                             >
                                 <Box sx={{ width: 60, height: 60, borderRadius: '4px', overflow: 'hidden', flexShrink: 0 }}>
-                                    <img src={post.related_item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={getFirstImageUrl(post.related_item.image_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 </Box>
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <Typography variant="caption" sx={{ fontWeight: 800, display: 'block' }} noWrap>

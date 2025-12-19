@@ -10,6 +10,7 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PersonIcon from '@mui/icons-material/Person';
 import StorefrontIcon from '@mui/icons-material/Storefront';
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 interface TransactionScreenProps {
     currentUser: User;
@@ -192,7 +193,7 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
                 }}
             >
                 <img
-                    src={tx.item.image_url}
+                    src={getFirstImageUrl(tx.item.image_url)}
                     alt={tx.item.title}
                     style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8 }}
                 />

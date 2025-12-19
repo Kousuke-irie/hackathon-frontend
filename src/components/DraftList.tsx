@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
 import { Typography, Box,  Button } from '@mui/material';
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 interface DraftsListProps {
     user: User;
@@ -56,7 +57,11 @@ export const DraftsList = ({ user, onEditDraft }: DraftsListProps) => {
                         }}
                     >
                         <Box sx={{ width: 80, height: 80, borderRadius: '4px', overflow: 'hidden', bgcolor: '#f5f5f5', flexShrink: 0 }}>
-                            <img src={item.image_url || 'https://placehold.jp/100x100.png'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img
+                                src={getFirstImageUrl(item.image_url)} // 💡 修正
+                                alt=""
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
                         </Box>
                         <Box sx={{ flex: 1, ml: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>

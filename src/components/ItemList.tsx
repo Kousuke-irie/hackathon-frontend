@@ -4,6 +4,7 @@ import type { User } from "../types/user";
 import { Box, Divider, Select, MenuItem, Typography, CircularProgress, Stack } from "@mui/material";
 import { useSearchParams } from "react-router-dom";
 import { RecentItemsDisplay } from "./RecentItemsDisplay";
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 type Item = api.Item;
 
@@ -76,15 +77,6 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
         const [field, order] = value.split('_') as [('created_at' | 'price'), ('desc' | 'asc')];
         setSortBy(field);
         setSortOrder(order);
-    };
-
-    const getDisplayImage = (urlJson: string) => {
-        try {
-            const urls = JSON.parse(urlJson);
-            return Array.isArray(urls) ? urls[0] : urlJson;
-        } catch {
-            return urlJson;
-        }
     };
 
     return (
@@ -189,13 +181,13 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                                 mb: 1
                             }}>
                                 <img
-                                    src={getDisplayImage(item.image_url)}
+                                    src={getFirstImageUrl(item.image_url)} // 💡 修正
                                     alt={item.title}
                                     style={{
                                         position: 'absolute',
                                         top: 0, left: 0,
                                         width: '100%', height: '100%',
-                                        objectFit: "cover"
+                                        objectFit: "cover" // 💡 枠内に収めて切り抜く
                                     }}
                                 />
                                 {item.status === 'SOLD' && (

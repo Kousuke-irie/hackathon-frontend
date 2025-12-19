@@ -4,6 +4,7 @@ import * as api from "../services/api";
 import type { User } from "../types/user";
 import { Box, Tabs, Tab, Card, CardMedia, CardContent, Typography, Button } from '@mui/material';
 import {getStatusChipProps} from "../utils/transaction-helpers.tsx";
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 interface MyItemsProps {
     user: User;
@@ -87,7 +88,7 @@ export const MyItems = ({ user}: MyItemsProps) => {
                                 <CardMedia
                                     component="img"
                                     height="140"
-                                    image={item.image_url}
+                                    image={getFirstImageUrl(item.image_url)}
                                     sx={{ objectFit: 'cover' }}
                                 />
                                 <CardContent sx={{ p: 1.5, flexGrow: 1 }}>
@@ -139,7 +140,7 @@ export const MyItems = ({ user}: MyItemsProps) => {
                                 <CardMedia
                                     component="img"
                                     height="140"
-                                    image={tx.item.image_url}
+                                    image={getFirstImageUrl(tx.item.image_url)}
                                     sx={{ objectFit: 'cover' }}
                                 />
                                 <CardContent sx={{ p: 1.5, flexGrow: 1 }}>

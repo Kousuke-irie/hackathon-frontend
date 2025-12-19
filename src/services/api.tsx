@@ -210,7 +210,9 @@ export const fetchItemDetail = async (itemId: number): Promise<Item> => {
 };
 
 export const updateItem = async (itemId: number, data: ItemData): Promise<Item> => {
-    const response = await client.put(`/items/${itemId}`, data);
+    const response = await client.put(`/items/${itemId}`, data, {
+        headers: { 'X-User-ID': data.seller_id }
+    });
     return response.data.item;
 };
 

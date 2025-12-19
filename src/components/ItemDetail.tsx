@@ -4,7 +4,7 @@ import type { User } from "../types/user";
 import { addRecentView } from '../services/recent-views';
 import { RecentItemsDisplay } from "./RecentItemsDisplay";
 import {useNavigate} from "react-router-dom";
-
+import {parseImageUrls} from "../utils/image-helpers.tsx";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js"
 import { PaymentModal } from "./PaymentModal";
@@ -82,12 +82,7 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
 
     useEffect(() => {
         if (item?.image_url) {
-            try {
-                const parsed = JSON.parse(item.image_url);
-                setImages(Array.isArray(parsed) ? parsed : [item.image_url]);
-            } catch {
-                setImages([item.image_url]);
-            }
+            setImages(parseImageUrls(item.image_url));
         }
     }, [item]);
 
@@ -172,14 +167,28 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
                 <Grid size={{ xs: 12, md: 6 }}>
                     <Box sx={{
                         width: "100%",
-                        paddingTop: "100%",
                         position: "relative",
                         bgcolor: "#f9f9f9",
                         borderRadius: "8px",
-                        overflow: "hidden"
+                        overflow: "hidden",
+                        aspectRatio: "1/1", // 💡 コンテナを正方形に固定
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
                     }}>
                         {images.map((url, i) => (
-                            <img  alt={"商品画像"} key={i} src={url} style={{ display: i === activeIndex ? 'block' : 'none' }} />
+                            <img
+                                alt="商品画像"
+                                key={i}
+                                src={url}
+                                style={{
+                                    display: i === activeIndex ? 'block' : 'none',
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'contain', // 💡 全体が見えるように収める
+                                    backgroundColor: '#fff'
+                                }}
+                            />
                         ))}
                         {images.length > 1 && (
                             <Box sx={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 1 }}>

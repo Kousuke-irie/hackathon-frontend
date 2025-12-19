@@ -6,6 +6,7 @@ import {
     DialogContent, Rating, TextField, CardContent, CardMedia, Card
 } from '@mui/material';
 import { getStatusChipProps } from "../utils/transaction-helpers.tsx";
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 interface PurchaseHistoryProps {
     user: User;
@@ -112,7 +113,7 @@ export const PurchaseHistory = ({ user, onItemClick }: PurchaseHistoryProps) => 
                                 <CardMedia
                                     component="img"
                                     sx={{ width: 80, height: 80, borderRadius: '8px', objectFit: 'cover' }}
-                                    image={tx.item.image_url}
+                                    image={getFirstImageUrl(tx.item.image_url)}
                                     alt={tx.item.title}
                                 />
                                 <CardContent sx={{ flex: '1 0 auto', p: '0 0 0 16px !important' }}>

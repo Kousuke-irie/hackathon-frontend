@@ -4,6 +4,7 @@ import axios from "axios";
 import * as api from "../services/api";
 import type { User } from "../types/user";
 import { Box, TextField, Button, Select, MenuItem, InputLabel, FormControl, CircularProgress, Typography, Paper,Divider } from '@mui/material';
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 // 型の定義（外部ファイルからインポートしている前提）
 type CategoryTree = api.CategoryTree;
@@ -314,7 +315,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
                         {[...existingImages, ...imageFiles.map(f => URL.createObjectURL(f))].map((url, idx) => (
                             <Box key={idx} sx={{ position: 'relative', width: 100, height: 100 }}>
-                                <img alt="商品画像" src={url} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
+                                <img alt="商品画像" src={getFirstImageUrl(url)} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
                                 <Button
                                     onClick={() => removeImage(idx, idx < existingImages.length)}
                                     sx={{ position: 'absolute', top: -5, right: -5, minWidth: 20, p: 0, bgcolor: 'error.main', color: 'white', borderRadius: '50%' }}
