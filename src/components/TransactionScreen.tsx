@@ -2,9 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import { Box, Typography, Paper, Button, Step, Stepper, StepLabel,Alert, Dialog, DialogTitle, DialogContent, Rating, TextField } from '@mui/material';
+import {
+    Box, Typography, Paper, Button, Step, Stepper, StepLabel, Alert,
+    Dialog, DialogTitle, DialogContent, Rating, TextField, Chip, Divider
+} from '@mui/material';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import PersonIcon from '@mui/icons-material/Person';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 
 interface TransactionScreenProps {
     currentUser: User;
@@ -16,7 +21,6 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
     const [tx, setTx] = useState<api.Transaction | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // 評価モーダル用ステート
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
     const [reviewRating, setReviewRating] = useState<number>(5);
     const [reviewComment, setReviewComment] = useState('');
@@ -39,7 +43,7 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
             const data = await api.fetchTransactionDetail(Number(txId));
             setTx(data);
         } catch (error) {
-            console.error(error);
+            console.error("Failed to fetch transaction detail:", error);
         } finally {
             setLoading(false);
         }
@@ -49,7 +53,7 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
         (async () => {
             await fetchTransactionData();
         })();
-        }, [fetchTransactionData]);
+    }, [fetchTransactionData]);
 
     const handleAction = async (newStatus: string) => {
         if (!tx) return;
@@ -59,114 +63,155 @@ export const TransactionScreen = ({ currentUser }: TransactionScreenProps) => {
             await fetchTransactionData();
         } catch (error) {
             alert("更新に失敗しました");
-            console.error(error);
+            console.error("Failed to update status:", error);
         }
     };
 
-    // 受取評価の送信
     const handleReviewSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!tx) return;
-
         try {
-            await api.postReview(
-                tx.id,
-                currentUser.id,
-                reviewRating,
-                reviewComment,
-                'BUYER'
-            );
+            await api.postReview(tx.id, currentUser.id, reviewRating, reviewComment, 'BUYER');
             alert('評価が完了しました！');
             setReviewModalOpen(false);
             await fetchTransactionData();
         } catch (error) {
-            console.error("Review post failed:", error);
             alert('評価の投稿に失敗しました。');
+            console.error("Failed to update status:", error);
         }
     };
 
-    if (loading) return <Typography>Loading...</Typography>;
-    if (!tx) return <Typography>取引情報が見つかりません</Typography>;
+    if (loading) return <Typography align="center" sx={{ mt: 5 }}>読み込み中...</Typography>;
+    if (!tx) return <Typography align="center" sx={{ mt: 5 }}>取引情報が見つかりません</Typography>;
 
     const isSeller = tx.seller_id === currentUser.id;
     const currentStatus = tx.Status;
 
     return (
         <Box sx={{ maxWidth: 600, mx: 'auto', mt: 4, p: 2 }}>
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>取引画面</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h5" sx={{ fontWeight: 800 }}>取引画面</Typography>
+                {/* 💡 役割を明示するバッジを追加 */}
+                <Chip
+                    icon={isSeller ? <StorefrontIcon /> : <PersonIcon />}
+                    label={isSeller ? "あなたは出品者です" : "あなたは購入者です"}
+                    color={isSeller ? "primary" : "secondary"}
+                    variant="outlined"
+                    sx={{ fontWeight: 'bold' }}
+                />
+            </Box>
 
-            <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 3, border: '1px solid #eee', bgcolor: '#fcfcfc' }}>
                 <Stepper activeStep={getActiveStep(currentStatus)} alternativeLabel sx={{ mb: 4 }}>
                     {steps.map((label) => (
                         <Step key={label}><StepLabel>{label}</StepLabel></Step>
                     ))}
                 </Stepper>
 
+                <Divider sx={{ mb: 3 }} />
+
                 {currentStatus === 'CANCELED' ? (
-                    <Alert severity="error">この取引はキャンセルされました</Alert>
+                    <Alert severity="error" variant="outlined">この取引はキャンセルされました</Alert>
                 ) : (
-                    <Box sx={{ textAlign: 'center', py: 2 }}>
+                    <Box sx={{ textAlign: 'center', py: 1 }}>
                         {isSeller ? (
-                            // 出品者側の表示
-                            <>
+                            /* --- 出品者向けのUI --- */
+                            <Box>
                                 {currentStatus === 'PURCHASED' && (
-                                    <Button
-                                        variant="contained"
-                                        size="large"
-                                        onClick={() => handleAction('SHIPPED')}
-                                        startIcon={<LocalShippingIcon />}
-                                        sx={{ bgcolor: '#1a1a1a' }}
-                                    >
-                                        商品を発送したので連絡する
-                                    </Button>
+                                    <>
+                                        <Typography variant="body1" sx={{ mb: 2, fontWeight: 700 }}>
+                                            商品が購入されました！<br />発送の準備をして、完了したら通知してください。
+                                        </Typography>
+                                        <Button
+                                            variant="contained"
+                                            size="large"
+                                            onClick={() => handleAction('SHIPPED')}
+                                            startIcon={<LocalShippingIcon />}
+                                            sx={{ bgcolor: '#1a1a1a', px: 4 }}
+                                        >
+                                            商品の発送を通知する
+                                        </Button>
+                                    </>
                                 )}
-                                {currentStatus === 'SHIPPED' && <Typography color="text.secondary">購入者の受取評価待ちです</Typography>}
-                                {currentStatus === 'RECEIVED' && <Typography fontWeight="bold">受取評価されました。取引完了です。</Typography>}
-                            </>
-                        ) : (
-                            // 購入者側の表示
-                            <>
-                                {currentStatus === 'PURCHASED' && <Typography color="text.secondary">出品者からの発送連絡をお待ちください</Typography>}
                                 {currentStatus === 'SHIPPED' && (
-                                    <Box>
-                                        <Typography variant="body1" sx={{ mb: 2 }}>商品が発送されました。到着したら評価をお願いします。</Typography>
+                                    <Typography color="text.secondary">
+                                        商品を発送しました。購入者の受取評価を待っています。
+                                    </Typography>
+                                )}
+                                {(currentStatus === 'RECEIVED' || currentStatus === 'COMPLETED') && (
+                                    <Typography variant="h6" color="success.main" sx={{ fontWeight: 800 }}>
+                                        <CheckCircleIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
+                                        取引が完了しました
+                                    </Typography>
+                                )}
+                            </Box>
+                        ) : (
+                            /* --- 購入者向けのUI --- */
+                            <Box>
+                                {currentStatus === 'PURCHASED' && (
+                                    <Typography color="text.secondary">
+                                        支払いが完了しました。出品者からの発送通知をお待ちください。
+                                    </Typography>
+                                )}
+                                {currentStatus === 'SHIPPED' && (
+                                    <>
+                                        <Typography variant="body1" sx={{ mb: 2, fontWeight: 700 }}>
+                                            商品が発送されました！<br />内容を確認し、問題なければ評価を行ってください。
+                                        </Typography>
                                         <Button
                                             variant="contained"
                                             color="success"
                                             size="large"
-                                            onClick={() => setReviewModalOpen(true)} // 💡 モーダルを開く
+                                            onClick={() => setReviewModalOpen(true)}
                                             startIcon={<CheckCircleIcon />}
+                                            sx={{ px: 4 }}
                                         >
-                                            商品を受け取ったので評価する
+                                            受け取り評価をする
                                         </Button>
-                                    </Box>
+                                    </>
                                 )}
                                 {(currentStatus === 'RECEIVED' || currentStatus === 'COMPLETED') && (
-                                    <Typography fontWeight="bold">受取評価を送信しました。取引完了です。</Typography>
+                                    <Typography variant="h6" color="success.main" sx={{ fontWeight: 800 }}>
+                                        <CheckCircleIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
+                                        受取評価を完了しました
+                                    </Typography>
                                 )}
-                            </>
+                            </Box>
                         )}
                     </Box>
                 )}
             </Paper>
 
+            {/* 商品情報カード */}
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, ml: 1 }}>商品情報</Typography>
             <Paper
                 onClick={() => navigate(`/items/${tx.item.id}`)}
-                sx={{ p: 2, borderRadius: 2, cursor: 'pointer', '&:hover': { bgcolor: '#fafafa' } }}
+                sx={{
+                    p: 2,
+                    borderRadius: 3,
+                    cursor: 'pointer',
+                    border: '1px solid #eee',
+                    boxShadow: 'none',
+                    display: 'flex',
+                    gap: 2,
+                    transition: '0.2s',
+                    '&:hover': { bgcolor: '#f5f5f5', borderColor: '#1a1a1a' }
+                }}
             >
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>商品情報</Typography>
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                    <img src={tx.item.image_url} alt="" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4 }} />
-                    <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>{tx.item.title}</Typography>
-                        <Typography variant="h6" color="primary">
-                            ¥{tx.price_snapshot?.toLocaleString() || tx.item.price.toLocaleString()}
-                        </Typography>
-                    </Box>
+                <img
+                    src={tx.item.image_url}
+                    alt={tx.item.title}
+                    style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8 }}
+                />
+                <Box sx={{ flex: 1 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 700, mb: 0.5 }}>{tx.item.title}</Typography>
+                    <Typography variant="h6" color="primary" sx={{ fontWeight: 800 }}>
+                        ¥{(tx.price_snapshot || tx.item.price).toLocaleString()}
+                    </Typography>
                 </Box>
             </Paper>
 
-            {/* 💡 受取評価モーダル */}
+            {/* 評価モーダル */}
             <Dialog
                 open={reviewModalOpen}
                 onClose={() => setReviewModalOpen(false)}
