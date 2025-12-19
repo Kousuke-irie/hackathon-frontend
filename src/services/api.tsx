@@ -130,7 +130,12 @@ export interface Transaction {
     price_snapshot: number;
     created_at: string;
     item: Item; // 紐付いた商品情報
-    Status: string;
+    status: string;
+}
+
+export interface ItemListResponse {
+    items: Item[];
+    // 必要に応じて total_count などを追加
 }
 
 // --- 3. API通信関数 ---
@@ -168,7 +173,7 @@ export const fetchLikedItems = async (userId: number) : Promise<Item[]> => {
 /** 汎用的な商品一覧を取得 (自分が出品していないON_SALEの商品) */
 export const fetchItemList = async (
     params: ItemListParams
-): Promise<Item[]> => {
+): Promise<ItemListResponse> => { // 💡 戻り値を Item[] から ItemListResponse に変更
     const searchParams = new URLSearchParams();
 
     Object.entries(params).forEach(([key, value]) => {
@@ -177,13 +182,14 @@ export const fetchItemList = async (
         }
     });
     const response = await client.get(`/items?${searchParams.toString()}`);
-    return response.data.items;
+    // 💡 response.data が { items: [...] } であることを想定
+    return response.data;
 };
 
 /** 自分の出品商品一覧を取得 */
-export const fetchMyItems = async (userId: number): Promise<Item[]> => {
-    const response = await client.get(`/my/items`, {
-        // 自分の出品取得APIはX-User-IDヘッダーが必要
+export const fetchMyItems = async (userId: number, status?: string): Promise<Item[]> => {
+    const url = status ? `/my/items?status=${status}` : '/my/items';
+    const response = await client.get(url, {
         headers: { 'X-User-ID': userId.toString() },
     });
     return response.data.items;
@@ -204,7 +210,9 @@ export const fetchItemDetail = async (itemId: number): Promise<Item> => {
 };
 
 export const updateItem = async (itemId: number, data: ItemData): Promise<Item> => {
-    const response = await client.put(`/items/${itemId}`, data);
+    const response = await client.put(`/items/${itemId}`, data, {
+        headers: { 'X-User-ID': data.seller_id }
+    });
     return response.data.item;
 };
 
@@ -231,6 +239,14 @@ export const checkItemLiked = async (userId: number ,itemId: number): Promise<{ 
 /** 購入履歴を取得 */
 export const fetchPurchaseHistory = async (userId: number): Promise<Transaction[]> => {
     const response = await client.get('/my/purchases', {
+        headers: { 'X-User-ID': userId.toString() },
+    });
+    return response.data.transactions;
+};
+
+/** 自分が販売し、完了した取引一覧を取得 */
+export const fetchMySalesHistory = async (userId: number): Promise<Transaction[]> => {
+    const response = await client.get('/my/sales-history', {
         headers: { 'X-User-ID': userId.toString() },
     });
     return response.data.transactions;
@@ -311,6 +327,20 @@ export const cancelTransaction = async (txId: number): Promise<void> => {
 export const fetchInProgressPurchases = async (userId: number): Promise<Transaction[]> => {
     const response = await client.get(`/my/in-progress`, {
         // Go側でX-User-IDで認証を行うため、ヘッダーを渡す
+        headers: { 'X-User-ID': userId.toString() },
+    });
+    return response.data.transactions;
+};
+
+/** 特定の取引詳細を取得 */
+export const fetchTransactionDetail = async (txId: number): Promise<Transaction> => {
+    const response = await client.get(`/transactions/${txId}`);
+    return response.data.transaction;
+};
+
+/** 自分が販売した取引中の商品一覧を取得 (出品者用) */
+export const fetchMySalesInProgress = async (userId: number): Promise<Transaction[]> => {
+    const response = await client.get(`/my/sales-in-progress`, {
         headers: { 'X-User-ID': userId.toString() },
     });
     return response.data.transactions;

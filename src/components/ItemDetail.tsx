@@ -4,7 +4,7 @@ import type { User } from "../types/user";
 import { addRecentView } from '../services/recent-views';
 import { RecentItemsDisplay } from "./RecentItemsDisplay";
 import {useNavigate} from "react-router-dom";
-
+import {parseImageUrls} from "../utils/image-helpers.tsx";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js"
 import { PaymentModal } from "./PaymentModal";
@@ -48,6 +48,9 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [isLiked, setIsLiked] = useState(false);
     const navigate = useNavigate();
+    const [images, setImages] = useState<string[]>([]);
+    const [activeIndex, setActiveIndex] = useState(0);
+
 
     const [communities, setCommunities] = useState<api.Community[]>([]);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -60,6 +63,7 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
                 setLoading(true);
                 const itemData = await api.fetchItemDetail(itemId);
                 setItem(itemData);
+                setImages(parseImageUrls(itemData.image_url));
                 addRecentView(itemId);
                 if (currentUser) {
                     const likedStatus = await api.checkItemLiked(currentUser.id, itemId);
@@ -133,7 +137,7 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
     const handleShareToCommunity = async (communityId: number) => {
         if (!currentUser) return;
         try {
-            await api.postCommunityPost(communityId, currentUser.id, "この商品が気になります！", itemId);
+            await api.postCommunityPost(communityId, currentUser.id, "商品を共有しました", itemId);
             alert("コミュニティに共有しました");
             setShareModalOpen(false);
         } catch (error) {
@@ -156,36 +160,62 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
 
             <Grid container spacing={4}>
                 <Grid size={{ xs: 12, md: 6 }}>
+                    {/* 💡 メイン画像表示エリア */}
                     <Box sx={{
                         width: "100%",
-                        paddingTop: "100%",
+                        aspectRatio: "1/1",
                         position: "relative",
                         bgcolor: "#f9f9f9",
-                        borderRadius: "8px",
-                        overflow: "hidden"
+                        borderRadius: "12px",
+                        overflow: "hidden",
+                        mb: 2
                     }}>
                         <img
-                            src={item.image_url}
-                            alt={item.title}
-                            style={{
-                                position: "absolute",
-                                top: 0,
-                                left: 0,
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "contain"
-                            }}
+                            src={images[activeIndex]}
+                            alt="商品メイン画像"
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
                         {isSold && (
                             <Box sx={{
                                 position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.4)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 color: '#fff', fontSize: '2rem', fontWeight: 'bold'
-                            }}>
-                                SOLD OUT
-                            </Box>
+                            }}>SOLD OUT</Box>
                         )}
                     </Box>
+
+                    {/* 💡 複数画像がある場合のサムネイル・スクロールエリア */}
+                    {images.length > 1 && (
+                        <Box sx={{
+                            display: 'flex',
+                            gap: 1,
+                            overflowX: 'auto',
+                            pb: 1,
+                            '&::-webkit-scrollbar': { height: '4px' },
+                            '&::-webkit-scrollbar-thumb': { bgcolor: '#ddd', borderRadius: '10px' }
+                        }}>
+                            {images.map((url, i) => (
+                                <Box
+                                    key={i}
+                                    onClick={() => setActiveIndex(i)}
+                                    sx={{
+                                        width: 70,
+                                        height: 70,
+                                        flexShrink: 0,
+                                        borderRadius: '8px',
+                                        overflow: 'hidden',
+                                        cursor: 'pointer',
+                                        border: '2px solid',
+                                        borderColor: i === activeIndex ? 'primary.main' : 'transparent',
+                                        transition: '0.2s',
+                                        '&:hover': { opacity: 0.8 }
+                                    }}
+                                >
+                                    <img src={url} alt={"商品画像"} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </Box>
+                            ))}
+                        </Box>
+                    )}
                 </Grid>
 
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -276,11 +306,11 @@ export const ItemDetail = ({ itemId, currentUser, onBack }: ItemDetailProps) => 
 
             {currentUser && <CommentSection itemId={itemId} currentUser={currentUser} />}
 
-            {!isMyItem && (
+            {!isMyItem && currentUser && (
                 <Box sx={{ mt: 8 }}>
-                    <RecentItemsDisplay onItemClick={(id) => {
+                    <RecentItemsDisplay currentUser={currentUser} onItemClick={(id) => {
                         onBack();
-                        window.location.href = `/items/${id}`;
+                        navigate(`/items/${id}`);
                     }} />
                 </Box>
             )}

@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import * as api from "../services/api";
 import type { User } from "../types/user";
-import {Box, FormControl, Select, MenuItem, Typography, CircularProgress} from "@mui/material";
-import { useSearchParams} from "react-router-dom";
-import { RecentItemsDisplay} from "./RecentItemsDisplay";
+import { Box, Divider, Select, MenuItem, Typography, CircularProgress, Stack } from "@mui/material";
+import { useSearchParams } from "react-router-dom";
+import { RecentItemsDisplay } from "./RecentItemsDisplay";
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 type Item = api.Item;
 
@@ -15,23 +16,31 @@ interface ItemListProps {
 export const ItemList = ({ user, onItemClick }: ItemListProps) => {
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
     const [selectedCondition, setSelectedCondition] = useState<string>('');
     const [categoriesMeta, setCategoriesMeta] = useState<api.Category[]>([]);
     const [conditionsMeta, setConditionsMeta] = useState<api.ProductCondition[]>([]);
     const [sortBy, setSortBy] = useState<'created_at' | 'price'>('created_at');
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+
     const [searchParams] = useSearchParams();
     const keyword = searchParams.get('q') || '';
+    const categoryQuery = searchParams.get('cat');
 
     const currentUserID = user ? user.id : 0;
+
+    const currentCategoryName = useMemo(() => {
+        if (!categoryQuery) return keyword ? `「${keyword}」の検索結果` : "おすすめ商品";
+        const catId = Number(categoryQuery);
+        const cat = categoriesMeta.find(c => c.id === catId);
+        return cat ? cat.name : "カテゴリー商品";
+    }, [categoryQuery, categoriesMeta, keyword]);
 
     useEffect(() => {
         (async () => {
             try {
                 const [categories, conditions] = await Promise.all([
                     api.fetchCategories(),
-                    api.fetchConditions(),
+                    api.fetchConditions()
                 ]);
                 setCategoriesMeta(categories);
                 setConditionsMeta(conditions);
@@ -46,119 +55,139 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
             setLoading(true);
             try {
                 const params = {
-                    user_id: currentUserID,
-                    category_id: selectedCategory || undefined,
+                    q: keyword || undefined,
+                    category_id: categoryQuery ? Number(categoryQuery) : undefined,
                     condition: selectedCondition || undefined,
                     sort_by: sortBy,
                     sort_order: sortOrder,
-                    q: keyword || undefined,
+                    user_id: currentUserID || undefined
                 };
-                const fetchedItems = await api.fetchItemList(params);
-                setItems(fetchedItems);
+                const res = await api.fetchItemList(params);
+                setItems(res.items || []);
             } catch (error) {
-                console.error("Failed to fetch item list:", error);
+                console.error("Failed to fetch items:", error);
+                setItems([]);
             } finally {
                 setLoading(false);
             }
         })();
-    }, [user, currentUserID, selectedCategory, selectedCondition, sortBy, sortOrder, keyword]);
+    }, [keyword, categoryQuery, selectedCondition, sortBy, sortOrder, currentUserID]);
 
-    if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress color="inherit" /></Box>;
+    const handleSortChange = (value: string) => {
+        const [field, order] = value.split('_') as [('created_at' | 'price'), ('desc' | 'asc')];
+        setSortBy(field);
+        setSortOrder(order);
+    };
 
     return (
-        <Box>
-            <RecentItemsDisplay onItemClick={onItemClick} />
+        <Box sx={{ pb: 8 }}>
+            <Box sx={{ mb: 3, px: { xs: 2, md: 0 } }}>
+                <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: 1 }}>
+                    {currentCategoryName}
+                </Typography>
+                {keyword && categoryQuery && (
+                    <Typography variant="caption" color="text.secondary">
+                        カテゴリー内検索中
+                    </Typography>
+                )}
+            </Box>
 
-            {/* フィルタリングエリア: シンプルに */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 4, overflowX: 'auto', pb: 1 }}>
-                <FormControl size="small" variant="standard" sx={{ minWidth: 100 }}>
+            <Box sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: { xs: 1, sm: 3 },
+                mb: 4,
+                px: { xs: 2, md: 2 },
+                py: 1.5,
+                bgcolor: '#f8f8f8',
+                borderRadius: 2
+            }}>
+                <Stack direction="row" alignItems="center" gap={1}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#999', textTransform: 'uppercase' }}>並び替え</Typography>
                     <Select
-                        value={selectedCategory || ''}
-                        onChange={(e) => setSelectedCategory(Number(e.target.value))}
-                        displayEmpty
-                        renderValue={selectedCategory ? undefined : () => "カテゴリ"}
-                    >
-                        <MenuItem value="">すべて</MenuItem>
-                        {categoriesMeta.map((cat) => (
-                            <MenuItem key={cat.id} value={cat.id}>{cat.name}</MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-
-                <FormControl size="small" variant="standard" sx={{ minWidth: 100 }}>
-                    <Select
-                        value={selectedCondition}
-                        onChange={(e) => setSelectedCondition(e.target.value as string)}
-                        displayEmpty
-                        renderValue={selectedCondition ? undefined : () => "状態"}
-                    >
-                        <MenuItem value="">すべて</MenuItem>
-                        {conditionsMeta.map((cond) => (
-                            <MenuItem key={cond.id} value={cond.name}>{cond.name}</MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-
-                <FormControl size="small" variant="standard" sx={{ minWidth: 120 }}>
-                    <Select
+                        size="small"
+                        variant="standard"
                         value={`${sortBy}_${sortOrder}`}
-                        onChange={(e) => {
-                            const [by, order] = (e.target.value as string).split('_');
-                            setSortBy(by as 'created_at' | 'price');
-                            setSortOrder(order as 'asc' | 'desc');
-                        }}
+                        onChange={(e) => handleSortChange(e.target.value)}
+                        sx={{ fontSize: '0.85rem', fontWeight: 600, minWidth: 100 }}
+                        disableUnderline
                     >
                         <MenuItem value="created_at_desc">新着順</MenuItem>
                         <MenuItem value="price_asc">価格の安い順</MenuItem>
                         <MenuItem value="price_desc">価格の高い順</MenuItem>
                     </Select>
-                </FormControl>
+                </Stack>
+
+                <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' }, mx: 1 }} />
+
+                <Stack direction="row" alignItems="center" gap={1}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#999', textTransform: 'uppercase' }}>商品の状態</Typography>
+                    <Select
+                        size="small"
+                        variant="standard"
+                        value={selectedCondition}
+                        onChange={(e) => setSelectedCondition(e.target.value)}
+                        displayEmpty
+                        sx={{ fontSize: '0.85rem', fontWeight: 600, minWidth: 100 }}
+                        disableUnderline
+                    >
+                        <MenuItem value="">すべて</MenuItem>
+                        {conditionsMeta.map(c => (
+                            <MenuItem key={c.id} value={c.name}>{c.name}</MenuItem>
+                        ))}
+                    </Select>
+                </Stack>
             </Box>
 
-            {items.length === 0 ? (
-                <Typography align="center" color="text.secondary" sx={{ mt: 5 }}>該当する商品が見つかりませんでした。</Typography>
+            {!keyword && !categoryQuery && user && <RecentItemsDisplay currentUser={user} onItemClick={onItemClick} />}
+
+            {loading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+                    <CircularProgress color="inherit" size={30} />
+                </Box>
+            ) : items.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 10, color: 'text.secondary' }}>
+                    <Typography>該当する商品は見つかりませんでした</Typography>
+                </Box>
             ) : (
-                <Box
-                    sx={{
-                        display: 'grid',
-                        gap: '24px 16px', // 縦横の隙間
-                        gridTemplateColumns: {
-                            xs: '1fr 1fr',          // スマホ: 2列
-                            sm: '1fr 1fr 1fr',      // タブレット: 3列
-                            md: '1fr 1fr 1fr 1fr',  // PC: 4列
-                        },
-                    }}
-                >
+                <Box sx={{
+                    display: "grid",
+                    gridTemplateColumns: {
+                        xs: "repeat(2, 1fr)",
+                        sm: "repeat(3, 1fr)",
+                        md: "repeat(4, 1fr)",
+                        lg: "repeat(5, 1fr)"
+                    },
+                    gap: { xs: 1.5, sm: 2, md: 3 }
+                }}>
                     {items.map((item) => (
                         <Box
                             key={item.id}
                             onClick={() => onItemClick(item.id)}
                             sx={{
-                                cursor: 'pointer',
-                                transition: 'opacity 0.2s',
+                                cursor: "pointer",
+                                transition: '0.2s',
                                 '&:hover': { opacity: 0.8 }
                             }}
                         >
-                            {/* 画像コンテナ: アスペクト比を固定（例: 1:1） */}
                             <Box sx={{
                                 position: 'relative',
                                 width: '100%',
-                                paddingTop: '100%', // 1:1 Aspect Ratio
-                                backgroundColor: '#f0f0f0',
-                                borderRadius: '4px', // ほんの少しだけ角を丸める
+                                pt: '100%',
+                                borderRadius: 1.5,
                                 overflow: 'hidden',
+                                bgcolor: '#f0f0f0',
                                 mb: 1
                             }}>
                                 <img
-                                    src={item.image_url}
+                                    src={getFirstImageUrl(item.image_url)} // 💡 修正
                                     alt={item.title}
                                     style={{
                                         position: 'absolute',
-                                        top: 0,
-                                        left: 0,
-                                        width: "100%",
-                                        height: "100%",
-                                        objectFit: "cover"
+                                        top: 0, left: 0,
+                                        width: '100%', height: '100%',
+                                        objectFit: "cover" // 💡 枠内に収めて切り抜く
                                     }}
                                 />
                                 {item.status === 'SOLD' && (
@@ -167,22 +196,38 @@ export const ItemList = ({ user, onItemClick }: ItemListProps) => {
                                         top: 0, left: 0, width: '100%', height: '100%',
                                         bgcolor: 'rgba(0,0,0,0.5)',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        color: 'white', fontWeight: 'bold', letterSpacing: 2
+                                        color: 'white', fontWeight: 900, letterSpacing: 2, fontSize: '1.2rem'
                                     }}>
                                         SOLD
                                     </Box>
                                 )}
+                                <Box sx={{
+                                    position: 'absolute',
+                                    bottom: 8, left: 0,
+                                    bgcolor: 'rgba(0,0,0,0.7)',
+                                    color: 'white',
+                                    px: 1, py: 0.2,
+                                    borderTopRightRadius: 4,
+                                    borderBottomRightRadius: 4,
+                                    fontSize: '0.85rem',
+                                    fontWeight: 700
+                                }}>
+                                    ¥{item.price.toLocaleString()}
+                                </Box>
                             </Box>
 
-                            {/* 商品情報: 最小限に */}
-                            <Box>
-                                <Typography variant="subtitle2" component="h3" noWrap sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                                    {item.title}
-                                </Typography>
-                                <Typography variant="body2" component="p" sx={{ fontWeight: 'bold', mt: 0.5 }}>
-                                    ¥{item.price.toLocaleString()}
-                                </Typography>
-                            </Box>
+                            <Typography
+                                variant="caption"
+                                component="div"
+                                noWrap
+                                sx={{
+                                    fontWeight: 500,
+                                    color: 'text.primary',
+                                    lineHeight: 1.2
+                                }}
+                            >
+                                {item.title}
+                            </Typography>
                         </Box>
                     ))}
                 </Box>

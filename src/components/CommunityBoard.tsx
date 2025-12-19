@@ -3,7 +3,8 @@ import * as api from "../services/api";
 import type { User } from "../types/user";
 import {
     Box, Button, Paper, InputBase, Typography, MenuItem, Avatar, IconButton,
-    Menu, Dialog, DialogTitle, List, ListItemIcon, ListItemText, ListItemButton, Divider, TextField
+    Menu, Dialog, DialogTitle, List, ListItemIcon, ListItemText, ListItemButton, Divider, TextField,
+    ListItemAvatar
 } from "@mui/material";
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -12,6 +13,8 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DeleteIcon from '@mui/icons-material/Delete';
+import axios from 'axios';
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 interface Post {
     id: number;
@@ -62,6 +65,7 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
     const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editInfo, setEditInfo] = useState({ name: '', description: '', image_url: '' });
+    const [newImageFile, setNewImageFile] = useState<File | null>(null);
 
     useEffect(() => {
         (async () => {
@@ -91,12 +95,14 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
     const handlePost = async () => {
         if (!content) return;
         try {
-            await api.postCommunityPost(communityId, currentUser.id, content, selectedItemId);
+            const finalContent = content === "" && selectedItemId ? "この商品をおすすめします！" : content;
+            await api.postCommunityPost(communityId, currentUser.id, finalContent, selectedItemId);
             setContent("");
             setSelectedItemId(null);
             await fetchPostsData(communityId, setPosts);
         } catch (error) {
             alert("投稿失敗");
+            console.error(error);
         }
     };
 
@@ -111,20 +117,32 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
             onBack();
         } catch (e) {
             alert("削除に失敗しました（作成者のみ削除可能です）");
+            console.error(e);
         }
     };
 
     const handleUpdateCommunity = async () => {
         try {
-            // api.client を使用して更新リクエスト
-            await api.client.put(`/communities/${communityId}`, editInfo, {
+            let finalImageUrl = editInfo.image_url;
+            if (newImageFile) {
+                const { uploadUrl, imageUrl } = await api.getGcsUploadUrl(newImageFile.name, currentUser.id, newImageFile.type);
+                await axios.put(uploadUrl, newImageFile, {
+                    headers: { 'Content-Type': newImageFile.type }
+                });
+                finalImageUrl = imageUrl;
+            }
+            await api.client.put(`/communities/${communityId}`, {
+                ...editInfo,
+                image_url: finalImageUrl // 💡 更新されたURLを送信
+            }, {
                 headers: { 'X-User-ID': currentUser.id.toString() }
             });
             alert("設定を更新しました");
             setEditModalOpen(false);
             window.location.reload();
         } catch (e) {
-            alert("更新に失敗しました（作成者のみ更新可能です）");
+            alert("更新に失敗しました");
+            console.error(e);
         }
     };
 
@@ -219,6 +237,9 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
                 <List sx={{ pt: 0 }}>
                     {(selectorMode === 'MY' ? myItems : likedItems).map(item => (
                         <ListItemButton key={item.id} onClick={() => { setSelectedItemId(item.id); setItemSelectorOpen(false); }}>
+                            <ListItemAvatar>
+                                <Avatar variant="rounded" src={(item as any).image_url} sx={{ width: 48, height: 48, mr: 1 }} />
+                            </ListItemAvatar>
                             <ListItemText
                                 primary={item.title}
                                 secondary={`¥${item.price.toLocaleString()}`}
@@ -252,6 +273,10 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
                         value={editInfo.description}
                         onChange={(e) => setEditInfo({...editInfo, description: e.target.value})}
                     />
+                    <Button variant="outlined" component="label" sx={{ textTransform: 'none' }}>
+                        {newImageFile ? `選択中: ${newImageFile.name}` : "コミュニティ画像を変更"}
+                        <input type="file" hidden accept="image/*" onChange={(e) => setNewImageFile(e.target.files?.[0] || null)} />
+                    </Button>
                     <Button
                         variant="contained"
                         onClick={handleUpdateCommunity}
@@ -291,7 +316,7 @@ export const CommunityBoard = ({ communityId, currentUser, onBack, onItemClick }
                                 }}
                             >
                                 <Box sx={{ width: 60, height: 60, borderRadius: '4px', overflow: 'hidden', flexShrink: 0 }}>
-                                    <img src={post.related_item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={getFirstImageUrl(post.related_item.image_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 </Box>
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <Typography variant="caption" sx={{ fontWeight: 800, display: 'block' }} noWrap>

@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import {useNavigate} from "react-router-dom";
 import axios from "axios";
 import * as api from "../services/api";
 import type { User } from "../types/user";
 import { Box, TextField, Button, Select, MenuItem, InputLabel, FormControl, CircularProgress, Typography, Paper,Divider } from '@mui/material';
-import ImageSearchIcon from '@mui/icons-material/ImageSearch'; // MUIアイコンを追加
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 // 型の定義（外部ファイルからインポートしている前提）
 type CategoryTree = api.CategoryTree;
@@ -19,8 +20,9 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [price, setPrice] = useState("");
-    const [image, setImage] = useState<File | null>(null);
-    const [existingImageURL, setExistingImageURL] = useState<string | null>(null); // 既存画像URL
+    const [imageFiles, setImageFiles] = useState<File[]>([]);
+    const [existingImages, setExistingImages] = useState<string[]>([]);
+    const [currentStatus, setCurrentStatus] = useState<string>("ON_SALE");
 
     const [categoryId, setCategoryId] = useState<number>(0);
     const [condition, setCondition] = useState<string>('');
@@ -35,6 +37,8 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
     const [isSaving, setIsSaving] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const isEditMode = !!editingItemId;
+
+    const navigate = useNavigate();
 
     // --- Computed States ---
     // 2段階選択ドロップダウンのデータソース
@@ -84,7 +88,13 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
                     setTitle(itemData.title);
                     setDescription(itemData.description);
                     setPrice(itemData.price.toString());
-                    setExistingImageURL(itemData.image_url);
+                    setCurrentStatus(itemData.status);
+                    try {
+                        const urls = JSON.parse(itemData.image_url);
+                        setExistingImages(Array.isArray(urls) ? urls : [itemData.image_url]);
+                    } catch {
+                        setExistingImages(itemData.image_url ? [itemData.image_url] : []);
+                    }
                     setCondition(itemData.condition);
                     setShippingPayer(itemData.shipping_payer as 'seller' | 'buyer');
                     setShippingFee(itemData.shipping_fee);
@@ -131,44 +141,48 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
 
     // 画像が変更されたらステートを更新
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setImage(e.target.files[0]);
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
+            setImageFiles(prev => [...prev, ...files]);
+        }
+    };
+
+    const removeImage = (index: number, isExisting: boolean) => {
+        if (isExisting) {
+            setExistingImages(prev => prev.filter((_, i) => i !== index));
+        } else {
+            setImageFiles(prev => prev.filter((_, i) => i !== index));
         }
     };
 
     // AI自動入力機能
     const handleAIAnalyze = async () => {
-        if (!image) {
+        if (!imageFiles) {
             alert("先に画像を選択してください");
             return;
         }
 
         setIsAnalyzing(true);
         try {
-            const aiData = await api.analyzeItemImage(image);
+            const aiData = await api.analyzeItemImage(imageFiles[0]);
 
             setTitle(aiData.title);
             setPrice(aiData.price.toString());
 
             if (aiData.category_id) {
                 const selectedCatId = aiData.category_id;
+                const selectedCat = categoryTree.find(c => c.id === selectedCatId) ||
+                    categoryTree.flatMap(c => c.children || []).find(c => c.id === selectedCatId);
 
-                // カテゴリツリー全体から、AIが提案したIDを持つカテゴリを検索
-                const selectedCat = categoryTree.find(c => c.id === selectedCatId);
-
-                // 1. カテゴリが有効で、かつ親IDを持つ（子カテゴリである）ことを確認
-                if (selectedCat && selectedCat.parent_id) {
-                    const parentId = selectedCat.parent_id;
-
-                    // 💡 最終修正: 同期的に両方をセット
-                    setParentCategory(parentId);
-                    setCategoryId(aiData.category_id); // AIのIDを直接セット
-
-                } else {
-                    // 🚨 無効なIDまたはトップレベルIDが返された場合
-                    alert(`AIが提案したID ${selectedCatId} は無効なカテゴリです。手動で選択してください。`);
-                    setParentCategory(null);
-                    setCategoryId(0);
+                if (selectedCat) {
+                    if (selectedCat.parent_id) {
+                        setParentCategory(selectedCat.parent_id);
+                        setCategoryId(selectedCatId);
+                    } else {
+                        // 大カテゴリが返ってきた場合
+                        setParentCategory(selectedCatId);
+                        setCategoryId(0); // 中カテゴリは選ばせる
+                    }
                 }
             }
 
@@ -190,8 +204,9 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
         }
 
         // 新規作成かつ画像がない場合、または編集モードで新しい画像がなく既存画像URLもない場合をチェック
-        if (!isDraft && !isEditMode && !image) {
-            alert("画像を選択してください");
+        const totalImages = imageFiles.length + existingImages.length;
+        if (!isDraft && !isEditMode && totalImages === 0) {
+            alert("画像を1枚以上選択してください");
             return;
         }
 
@@ -203,27 +218,17 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
 
         setIsSaving(true);
         try {
-            let finalImageUrl = existingImageURL; // 既存画像URLを初期値とする
+            // 💡 全ての画像をGCSにアップロード
+            const uploadedUrls = await Promise.all(
+                imageFiles.map(async (file) => {
+                    const { uploadUrl, imageUrl } = await api.getGcsUploadUrl(file.name, user.id, file.type);
+                    await axios.put(uploadUrl, file, { headers: { 'Content-Type': file.type } });
+                    return imageUrl;
+                })
+            );
 
-            // 1. 新しい画像ファイル(image)がある場合のみ、GCSにアップロード
-            if (image) {
-                // 1-1. アップロードURLと最終的な画像URLを取得 (api.tsxに追加した関数)
-                const { uploadUrl, imageUrl } = await api.getGcsUploadUrl(image.name,user.id,image.type);
-
-                await axios.put(uploadUrl, image, {
-                    headers: {
-                        'Content-Type': image.type,
-                    },
-                    transformRequest: [(data) => data],
-                });
-
-                finalImageUrl = imageUrl; // GCSに保存された最終的なURLを更新
-            }
-
-            // 画像が未選択なのにexistingImageURLもない場合はエラー (上のチェックで弾かれるはずだが念のため)
-            if (!finalImageUrl) {
-                throw new Error("画像URLが確定できませんでした。");
-            }
+            // 既存画像と新規アップロード画像を合体させてJSON文字列にする
+            const finalImageJson = JSON.stringify([...existingImages, ...uploadedUrls]);
 
             // 2. 商品データJSONの構築 (FormDataの代わり)
             const itemData: api.ItemData = {
@@ -231,7 +236,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
                 description: description,
                 price: price.toString(),
                 seller_id: user.id.toString(),
-                image_url: finalImageUrl, // 👈 GCSのURLを渡す
+                image_url: finalImageJson,
                 category_id: categoryId.toString(),
                 condition: condition,
                 shipping_payer: shippingPayer,
@@ -255,8 +260,8 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
                 setTitle("");
                 setDescription("");
                 setPrice("");
-                setImage(null);
-                setExistingImageURL(null); // URLもクリア
+                setImageFiles([]);
+                setExistingImages([]);
                 setCategoryId(0);
                 setParentCategory(null);
                 setShippingFee(0);
@@ -264,8 +269,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
             }
 
             if (isEditMode) {
-                // 編集完了後、下書きリストに戻るなど、親に通知するロジックが必要
-                window.location.href = '/drafts'; // Hard redirect (簡易策)
+                navigate('/mypage/drafts');
             }
         } catch (error) {
             console.error("Save/Draft failed:", error);
@@ -273,7 +277,7 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
         } finally {
             setIsSaving(false);
         }
-    }, [title, description, price, image,existingImageURL, categoryId, condition, shippingPayer, shippingFee, user, isEditMode, editingItemId]);
+    }, [title, description, price, imageFiles ,existingImages, categoryId, condition, shippingPayer, shippingFee, user,navigate,isEditMode, editingItemId]);
     // 出品機能 (handleSubmit)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -297,45 +301,49 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
 
     return (
         <Box sx={{ maxWidth: 800, mx: 'auto', p: 3, pb: 10 }}>
-            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 800, mb: 4, textAlign: 'center' }}>
-                {isEditMode ? `商品を編集 #${editingItemId}` : '商品の出品'}
+            <Typography variant="h5" sx={{ fontWeight: 800, mb: 4, textAlign: 'center' }}>
+                {isEditMode ? (currentStatus === 'DRAFT' ? '下書きを編集' : '商品の編集') : '商品の出品'}
             </Typography>
 
             <form onSubmit={handleSubmit}>
                 <Paper elevation={0} sx={{ p: { xs: 2, md: 4 }, border: '1px solid #eee', borderRadius: '8px' }}>
 
                     {/* 画像セクション */}
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>出品画像</Typography>
-                    <Box sx={{ mb: 4 }}>
-                        {(existingImageURL || image) && (
-                            <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                                <Box sx={{ position: 'relative', width: 100, height: 100 }}>
-                                    <img
-                                        src={image ? URL.createObjectURL(image) : existingImageURL!}
-                                        alt="商品画像"
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
-                                    />
-                                </Box>
-                                <Typography variant="caption" color="text.secondary">画像を変更する場合は再度選択してください</Typography>
-                            </Box>
-                        )}
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                            <input type="file" accept="image/*" onChange={handleImageChange} id="file-input" style={{ display: 'none' }} />
-                            <label htmlFor="file-input" style={{ flexGrow: 1 }}>
-                                <Button component="span" variant="outlined" startIcon={<ImageSearchIcon />} fullWidth sx={{ py: 1.5, borderColor: '#eee', color: '#1a1a1a' }}>
-                                    {image ? image.name : "画像を選択"}
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>出品画像 (最大10枚)</Typography>
+
+                    {/* 💡 プレビューエリア */}
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+                        {[...existingImages, ...imageFiles.map(f => URL.createObjectURL(f))].map((url, idx) => (
+                            <Box key={idx} sx={{ position: 'relative', width: 100, height: 100 }}>
+                                <img alt="商品画像" src={getFirstImageUrl(url)} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
+                                <Button
+                                    onClick={() => removeImage(idx, idx < existingImages.length)}
+                                    sx={{ position: 'absolute', top: -5, right: -5, minWidth: 20, p: 0, bgcolor: 'error.main', color: 'white', borderRadius: '50%' }}
+                                >
+                                    ×
                                 </Button>
-                            </label>
-                            <Button
-                                variant="contained"
-                                color="secondary"
-                                onClick={handleAIAnalyze}
-                                disabled={!image || isAnalyzing}
-                                sx={{ whiteSpace: 'nowrap', px: 3 }}
-                            >
-                                {isAnalyzing ? "解析中..." : "✨ AI自動入力"}
-                            </Button>
-                        </Box>
+                            </Box>
+                        ))}
+
+                        {/* 画像追加ボタン */}
+                        <Button
+                            component="label"
+                            variant="outlined"
+                            sx={{ width: 100, height: 100, borderRadius: 2, borderStyle: 'dashed' }}
+                        >
+                            + 追加
+                            <input type="file" hidden multiple accept="image/*" onChange={handleImageChange} />
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={handleAIAnalyze}
+                            disabled={!imageFiles || isAnalyzing}
+                            sx={{ whiteSpace: 'nowrap', px: 3 }}
+                        >
+                            {isAnalyzing ? "解析中..." : "✨ AI自動入力"}
+                        </Button>
+
                     </Box>
 
                     <Divider sx={{ my: 4 }} />
@@ -440,22 +448,34 @@ export const SellItem = ({ user, editingItemId }: SellItemProps) => {
                     </Box>
 
                     {/* ボタン群 */}
-                    <Box sx={{ mt: 6, display: 'flex', gap: 2 }}>
+                    <Box sx={{ mt: 6, display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+
+                        {/* 左側ボタン */}
                         <Button
                             variant="outlined"
-                            onClick={handleDraftSave}
+                            onClick={isEditMode && currentStatus !== 'DRAFT' ? () => navigate(-1) : handleDraftSave}
                             disabled={isSaving}
                             sx={{ flex: 1, py: 2, borderColor: '#1a1a1a', color: '#1a1a1a', fontWeight: 'bold' }}
                         >
-                            下書き保存
+                            {isSaving ? <CircularProgress size={24} color="inherit" /> : (
+                                isEditMode
+                                    ? (currentStatus === 'DRAFT' ? '下書きを更新' : '編集をキャンセル')
+                                    : '下書きに保存'
+                            )}
                         </Button>
+
+                        {/* 右側ボタン */}
                         <Button
                             type="submit"
                             variant="contained"
                             disabled={isSaving}
                             sx={{ flex: 2, py: 2, bgcolor: '#e91e63', fontWeight: 'bold', '&:hover': { bgcolor: '#c2185b' } }}
                         >
-                            {isSaving ? <CircularProgress size={24} color="inherit" /> : (isEditMode ? '変更を保存する' : '出品する')}
+                            {isSaving ? <CircularProgress size={24} color="inherit" /> : (
+                                isEditMode
+                                    ? (currentStatus === 'DRAFT' ? '出品する' : '変更を保存する')
+                                    : '出品する'
+                            )}
                         </Button>
                     </Box>
                 </Paper>

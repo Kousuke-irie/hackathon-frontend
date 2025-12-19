@@ -3,6 +3,7 @@ import TinderCard from "react-tinder-card";
 import * as api from "../services/api";
 import type { User } from "../types/user";
 import {Box,Typography} from "@mui/material";
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 interface Item {
     id: number;
@@ -94,7 +95,7 @@ export const SwipeDeck = ({ user }: SwipeDeckProps) => {
                         >
                             <Box sx={{ flex: 1, position: 'relative' }}>
                                 <img
-                                    src={item.image_url}
+                                    src={getFirstImageUrl(item.image_url)}
                                     alt={item.title}
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 />

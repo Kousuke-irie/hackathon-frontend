@@ -3,8 +3,8 @@ import * as api from "../services/api";
 import type { User } from "../types/user";
 import { Box, Typography, Chip } from '@mui/material';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
-// PurchaseHistory.tsx からヘルパー関数をインポートすることを想定
 import { getStatusChipProps } from '../utils/transaction-helpers.tsx'
+import {getFirstImageUrl} from "../utils/image-helpers.tsx";
 
 interface InProgressPurchasesProps {
     user: User;
@@ -51,7 +51,7 @@ export const InProgressPurchases = ({ user, onItemClick }: InProgressPurchasesPr
                 {transactions.map((tx) => (
                     <Box
                         key={tx.id}
-                        onClick={() => onItemClick(tx.item.id)}
+                        onClick={() => onItemClick(tx.id)}
                         sx={{
                             display: 'flex',
                             p: 2,
@@ -63,7 +63,7 @@ export const InProgressPurchases = ({ user, onItemClick }: InProgressPurchasesPr
                         }}
                     >
                         <Box sx={{ width: 70, height: 70, borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
-                            <img src={tx.item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={getFirstImageUrl(tx.item.image_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </Box>
                         <Box sx={{ flex: 1, ml: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }} noWrap>
@@ -71,10 +71,10 @@ export const InProgressPurchases = ({ user, onItemClick }: InProgressPurchasesPr
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                    ¥{tx.price_snapshot.toLocaleString()}
+                                    ¥{(tx.price_snapshot || tx.item.price).toLocaleString()}
                                 </Typography>
                                 <Chip
-                                    label={getStatusChipProps(tx.Status).label}
+                                    label={getStatusChipProps(tx.status).label}
                                     size="small"
                                     variant="filled"
                                     sx={{

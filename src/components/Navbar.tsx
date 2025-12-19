@@ -24,12 +24,14 @@ interface NavbarProps {
 
 const CATEGORY_LINKS = [
     { name: 'おすすめ', path: '/' },
-    { name: 'マイリスト', path: '/mylikes' },
+    { name: 'マイリスト', path: '/mylist' },
     { name: 'レディース', path: '/?cat=1' },
     { name: 'メンズ', path: '/?cat=2' },
-    { name: 'インテリア', path: '/?cat=3' },
-    { name: '本・音楽・ゲーム', path: '/?cat=4' },
-    { name: 'おもちゃ・ホビー', path: '/?cat=5' },
+    { name: 'インテリア', path: '/?cat=4' },
+    { name: '本・音楽・ゲーム', path: '/?cat=6' },
+    { name: 'ホビー・楽器', path: '/?cat=7' },
+    { name: 'コスメ・美容', path: '/?cat=8' },
+    { name: 'すべて見る', path: '/categories' },
 ];
 
 export const Navbar = ({ currentUser, onLogin, onLogout }: NavbarProps) => {
@@ -134,7 +136,7 @@ export const Navbar = ({ currentUser, onLogin, onLogout }: NavbarProps) => {
                                 <IconButton
                                     color="inherit"
                                     component={RouterLink}
-                                    to="/mylikes"
+                                    to="/mypage/likes"
                                     sx={{ display: { xs: 'none', md: 'inline-flex' }, flexDirection: 'column' }}
                                 >
                                     <FavoriteBorderIcon />
