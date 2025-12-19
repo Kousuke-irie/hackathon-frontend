@@ -15,6 +15,7 @@ import logoImg from "../assets/logo.png";
 import {useNotifications} from "../hooks/useNotifications.tsx";
 import ExploreIcon from '@mui/icons-material/Explore';
 import ForumIcon from '@mui/icons-material/Forum';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 
 interface NavbarProps {
     currentUser: User | null;
@@ -131,6 +132,15 @@ export const Navbar = ({ currentUser, onLogin, onLogout }: NavbarProps) => {
                                         <NotificationsNoneIcon />
                                     </Badge>
                                     <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>お知らせ</Typography>
+                                </IconButton>
+
+                                <IconButton
+                                    color="inherit"
+                                    onClick={() => navigate('/messages')}
+                                    sx={{ flexDirection: 'column' }}
+                                >
+                                    <ChatBubbleOutlineIcon />
+                                    <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>メッセージ</Typography>
                                 </IconButton>
 
                                 <IconButton

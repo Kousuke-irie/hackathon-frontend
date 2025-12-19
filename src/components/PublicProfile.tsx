@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Box, Avatar, Typography, Button, Paper, Tabs, Tab,List, ListItem,ListItemAvatar,Stack,Divider} from "@mui/material";
+import { Box, Avatar, Typography, Button, Paper, Tabs, Tab, List, ListItem, ListItemAvatar, Stack, Divider } from "@mui/material";
 import * as api from "../services/api";
 import type { User } from "../types/user";
 import { getFirstImageUrl } from "../utils/image-helpers";
@@ -38,7 +38,8 @@ export const PublicProfile = ({ currentUser }: { currentUser: User | null }) => 
         if (tab === 1 && userId) {
             (async () => {
                 try {
-                    api.fetchUserReviews(Number(userId)).then(setReviews);
+                    const fetchedReviews = await api.fetchUserReviews(Number(userId));
+                    setReviews(fetchedReviews);
                 } catch (error) {
                     console.error("Failed to fetch reviews", error);
                 }
@@ -91,24 +92,37 @@ export const PublicProfile = ({ currentUser }: { currentUser: User | null }) => 
                     </Box>
                 </Box>
 
-                {/* 💡 ボタン表示ロジックの重複を整理 */}
-                {isOwnProfile ? (
-                    <Button variant="outlined" sx={{ borderRadius: 20 }} onClick={() => navigate('/mypage/profile')}>
-                        編集
-                    </Button>
-                ) : (
-                    <Button
-                        variant={isFollowing ? "outlined" : "contained"}
-                        sx={{
-                            borderRadius: 20,
-                            bgcolor: isFollowing ? 'transparent' : '#e91e63',
-                            '&:hover': { bgcolor: isFollowing ? 'rgba(0,0,0,0.04)' : '#c2185b' }
-                        }}
-                        onClick={handleFollowClick}
-                    >
-                        {isFollowing ? "フォロー中" : "フォローする"}
-                    </Button>
-                )}
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    {isOwnProfile ? (
+                        <Button variant="outlined" sx={{ borderRadius: 20 }} onClick={() => navigate('/mypage/profile')}>
+                            編集
+                        </Button>
+                    ) : (
+                        /* 💡 修正ポイント: 複数の要素をフラグメントで囲む */
+                        <>
+                            <Button
+                                variant="outlined"
+                                sx={{ borderRadius: 20, borderColor: '#ddd', color: '#1a1a1a' }}
+                                onClick={() => navigate(`/chat/${user.id}`)}
+                            >
+                                メッセージ
+                            </Button>
+
+                            <Button
+                                variant={isFollowing ? "outlined" : "contained"}
+                                sx={{
+                                    borderRadius: 20,
+                                    bgcolor: isFollowing ? 'transparent' : '#e91e63',
+                                    color: isFollowing ? 'inherit' : '#fff',
+                                    '&:hover': { bgcolor: isFollowing ? 'rgba(0,0,0,0.04)' : '#c2185b' }
+                                }}
+                                onClick={handleFollowClick}
+                            >
+                                {isFollowing ? "フォロー中" : "フォローする"}
+                            </Button>
+                        </>
+                    )}
+                </Box>
             </Box>
 
             {/* 自己紹介エリア */}
@@ -166,7 +180,6 @@ export const PublicProfile = ({ currentUser }: { currentUser: User | null }) => 
                     )}
                 </Box>
             ) : (
-                // 💡 「評価」タブの内容を表示
                 <List sx={{ bgcolor: 'background.paper' }}>
                     {reviews.length === 0 ? (
                         <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
