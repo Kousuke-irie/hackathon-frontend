@@ -110,9 +110,11 @@ export const NotificationsPage = ({ user }: NotificationsPageProps) => {
                                                 break;
                                             case 'LIKE':
                                             case 'COMMENT':
+                                                navigate(`/items/${noti.related_id}`);
+                                                break;
                                             case 'SOLD':
                                             case 'PURCHASED':
-                                                navigate(`/items/${noti.related_id}`);
+                                                navigate(`/transactions/${noti.related_id}`);
                                                 break;
                                             default:
                                                 console.log("Unknown notification type:", noti.type);

@@ -51,7 +51,7 @@ export const InProgressPurchases = ({ user, onItemClick }: InProgressPurchasesPr
                 {transactions.map((tx) => (
                     <Box
                         key={tx.id}
-                        onClick={() => onItemClick(tx.item.id)}
+                        onClick={() => onItemClick(tx.id)}
                         sx={{
                             display: 'flex',
                             p: 2,

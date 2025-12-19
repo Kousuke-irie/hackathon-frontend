@@ -216,7 +216,7 @@ function AppContent() {
                         {user ? (
                             <>
                                 <Route path="/mypage" element={<MyPageLayout />}>
-                                    <Route index element={<InProgressPurchases user={user} onItemClick={(id) => navigate(`/items/${id}`)} />} />
+                                    <Route index element={<InProgressPurchases user={user} onItemClick={(txId) => navigate(`/transactions/${txId}`)} />} />
                                     <Route path="listings" element={<MyItems user={user} />} />
                                     <Route path="purchases" element={<PurchaseHistory user={user} onItemClick={(txId: number) => navigate(`/transactions/${txId}`)} />} />
                                     <Route path="drafts" element={<DraftsList user={user} onEditDraft={handleEditDraft} />} />
