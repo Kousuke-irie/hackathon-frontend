@@ -82,7 +82,7 @@ export const PublicProfile = ({ currentUser }: { currentUser: User | null }) => 
 
                 {/* 💡 ボタン表示ロジックの重複を整理 */}
                 {isOwnProfile ? (
-                    <Button variant="outlined" sx={{ borderRadius: 20 }} onClick={() => navigate('/profile')}>
+                    <Button variant="outlined" sx={{ borderRadius: 20 }} onClick={() => navigate('/mypage/profile')}>
                         編集
                     </Button>
                 ) : (

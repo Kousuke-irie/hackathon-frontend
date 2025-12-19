@@ -197,6 +197,21 @@ export const fetchLikedItems = async (userId: number) : Promise<Item[]> => {
     return response.data.items;
 }
 
+export const fetchFollowingItems = async (userId: number): Promise<Item[]> => {
+    const res = await client.get('/my/following-items', { headers: { 'X-User-ID': userId.toString() } });
+    return res.data.items;
+};
+
+export const fetchRecommendedUsers = async (userId: number): Promise<User[]> => {
+    const res = await client.get('/my/recommended-users', { headers: { 'X-User-ID': userId.toString() } });
+    return res.data.users;
+};
+
+export const fetchCategoryRecommendations = async (userId: number): Promise<Item[]> => {
+    const res = await client.get('/my/category-recommendations', { headers: { 'X-User-ID': userId.toString() } });
+    return res.data.items;
+};
+
 // ------------------------------------
 // 商品取得・一覧
 // ------------------------------------
